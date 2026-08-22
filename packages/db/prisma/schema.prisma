@@ -1,0 +1,125 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum SourceType {
+  GOOGLE_CALENDAR
+  MOODLE
+  MANUAL
+}
+
+enum TaskSourceType {
+  SLACK
+  SHEET
+}
+
+enum StatusState {
+  PENDING
+  IN_PROGRESS
+  DONE
+  UNKNOWN
+}
+
+enum NotificationKind {
+  DIGEST
+  T24H
+  T2H
+  MANUAL
+}
+
+model Course {
+  id         String     @id @default(cuid())
+  name       String
+  code       String?
+  source     SourceType
+  externalId String
+  color      String?
+  ignored    Boolean    @default(false)
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+  deadlines  Deadline[]
+
+  @@unique([source, externalId])
+}
+
+model Deadline {
+  id            String            @id @default(cuid())
+  courseId      String?
+  course        Course?           @relation(fields: [courseId], references: [id])
+  title         String
+  description   String?
+  dueAt         DateTime
+  source        SourceType
+  externalId    String
+  url           String?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  notifications NotificationLog[]
+
+  @@unique([source, externalId])
+}
+
+model Task {
+  id          String          @id @default(cuid())
+  title       String
+  sourceType  TaskSourceType
+  sourceRef   String
+  mentionedAt DateTime?
+  channel     String?
+  context     String?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  status      TaskStatus?
+
+  @@unique([sourceType, sourceRef])
+}
+
+model TaskStatus {
+  id         String      @id @default(cuid())
+  taskId     String      @unique
+  task       Task        @relation(fields: [taskId], references: [id])
+  state      StatusState @default(UNKNOWN)
+  scoreValue Float?
+  updatedAt  DateTime    @updatedAt
+  source     String
+}
+
+model EmailFlag {
+  id               String   @id @default(cuid())
+  gmailId          String   @unique
+  subject          String
+  from             String
+  snippet          String
+  reason           String
+  summarized       String?
+  seenAt           DateTime @default(now())
+  includedInDigest Boolean  @default(false)
+}
+
+model NotificationLog {
+  id                String           @id @default(cuid())
+  deadlineId        String?
+  deadline          Deadline?        @relation(fields: [deadlineId], references: [id])
+  kind              NotificationKind
+  dedupKey          String           @unique
+  sentAt            DateTime         @default(now())
+  telegramMessageId String?
+}
+
+model IntegrationCredential {
+  id               String    @id @default(cuid())
+  provider         String    @unique
+  accessTokenEnc   String?
+  refreshTokenEnc  String?
+  expiresAt        DateTime?
+  sessionCookieEnc String?
+  sessionCreatedAt DateTime?
+  lastSuccessAt    DateTime?
+  lastErrorAt      DateTime?
+  lastErrorMsg     String?
+}

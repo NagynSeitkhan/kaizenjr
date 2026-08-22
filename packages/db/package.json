@@ -1,0 +1,19 @@
+{
+  "name": "@course-dashboard/db",
+  "version": "0.0.1",
+  "private": true,
+  "main": "client.ts",
+  "types": "client.ts",
+  "scripts": {
+    "generate": "prisma generate",
+    "migrate": "prisma migrate dev",
+    "migrate:deploy": "prisma migrate deploy",
+    "studio": "prisma studio"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.20.0"
+  },
+  "devDependencies": {
+    "prisma": "^5.20.0"
+  }
+}

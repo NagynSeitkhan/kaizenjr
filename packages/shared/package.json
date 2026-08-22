@@ -1,0 +1,11 @@
+{
+  "name": "@course-dashboard/shared",
+  "version": "0.0.1",
+  "private": true,
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "dependencies": {
+    "@course-dashboard/db": "*",
+    "googleapis": "^144.0.0"
+  }
+}
