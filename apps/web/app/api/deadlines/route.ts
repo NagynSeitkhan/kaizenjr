@@ -1,14 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@course-dashboard/db";
+import { USER_UTC_OFFSET } from "@course-dashboard/shared";
 
 // The <input type="datetime-local"> value has no timezone info - it's the
 // browser's local wall-clock time. Vercel's serverless functions run with
 // TZ=UTC, so `new Date(rawValue)` would silently reinterpret that wall-clock
-// string as UTC instead of the user's real timezone. This app has one user,
-// in Kazakhstan (UTC+5, no DST), so we pin that offset explicitly rather than
-// getting it wrong by default.
-const USER_UTC_OFFSET = "+05:00";
-
+// string as UTC instead of the user's real timezone, so we pin the offset
+// explicitly (see packages/shared/src/time.ts for the display-side match).
 function parseLocalDateTime(raw: string): Date | null {
   const date = new Date(`${raw}${USER_UTC_OFFSET}`);
   return Number.isNaN(date.getTime()) ? null : date;

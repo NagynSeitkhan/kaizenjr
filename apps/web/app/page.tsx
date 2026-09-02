@@ -1,16 +1,7 @@
 import { prisma } from "@course-dashboard/db";
+import { formatUserDateTime as formatDate } from "@course-dashboard/shared";
 
 export const dynamic = "force-dynamic";
-
-function formatDate(d: Date): string {
-  return d.toLocaleString("en-US", {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
-}
 
 export default async function DashboardPage({
   searchParams,

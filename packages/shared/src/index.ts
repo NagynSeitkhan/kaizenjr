@@ -1,6 +1,7 @@
 export * from "./crypto";
 export * from "./google";
 export * from "./telegram";
+export * from "./time";
 
 export type NotificationKind = "DIGEST" | "T24H" | "T2H" | "MANUAL";
 

@@ -1,21 +1,11 @@
 import { prisma } from "@course-dashboard/db";
-import { sendTelegramMessage } from "@course-dashboard/shared";
+import { sendTelegramMessage, formatUserDateTime, currentHourForUser } from "@course-dashboard/shared";
 
 // "?? 8" alone isn't enough here: GitHub Actions passes unset repo variables
 // through as an empty string rather than omitting them, and "" is not
 // nullish, so it would slip past "??" and become Number("") = 0.
 const digestHourRaw = process.env.DIGEST_HOUR?.trim();
 const DIGEST_HOUR = digestHourRaw ? Number(digestHourRaw) : 8;
-
-function formatDate(d: Date): string {
-  return d.toLocaleString("en-US", {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
-}
 
 function escapeHtml(s: string): string {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -25,7 +15,7 @@ function escapeHtml(s: string): string {
 // DIGEST_HOUR + a per-day dedup key means a Telegram outage at 8:00 just
 // retries at 8:15/8:30/... instead of silently skipping the whole day.
 export async function runDailyDigest(): Promise<void> {
-  if (new Date().getHours() < DIGEST_HOUR) {
+  if (currentHourForUser() < DIGEST_HOUR) {
     return;
   }
 
@@ -61,7 +51,7 @@ export async function runDailyDigest(): Promise<void> {
   } else {
     for (const d of deadlines) {
       const courseTag = d.course ? `[${escapeHtml(d.course.name)}] ` : "";
-      lines.push(`• ${courseTag}${escapeHtml(d.title)} — ${formatDate(d.dueAt)}`);
+      lines.push(`• ${courseTag}${escapeHtml(d.title)} — ${formatUserDateTime(d.dueAt)}`);
     }
   }
 
