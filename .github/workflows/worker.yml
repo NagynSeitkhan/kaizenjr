@@ -1,0 +1,37 @@
+name: worker
+
+on:
+  schedule:
+    # GitHub's scheduler is best-effort and can lag a few minutes under load;
+    # that's fine here since dedup (NotificationLog.dedupKey) makes every job
+    # safe to run late or to overlap with the next tick.
+    - cron: "*/15 * * * *"
+  workflow_dispatch: {}
+
+jobs:
+  run-once:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - run: npm run generate --workspace=packages/db
+
+      - run: npm run once --workspace=apps/worker
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          APP_ENCRYPTION_KEY: ${{ secrets.APP_ENCRYPTION_KEY }}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          GOOGLE_REDIRECT_URI: ${{ secrets.GOOGLE_REDIRECT_URI }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          DIGEST_HOUR: ${{ vars.DIGEST_HOUR }}
+          SHEETS_SPREADSHEET_ID: ${{ secrets.SHEETS_SPREADSHEET_ID }}

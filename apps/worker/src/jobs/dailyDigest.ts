@@ -1,7 +1,11 @@
 import { prisma } from "@course-dashboard/db";
 import { sendTelegramMessage } from "@course-dashboard/shared";
 
-const DIGEST_HOUR = Number(process.env.DIGEST_HOUR ?? 8);
+// "?? 8" alone isn't enough here: GitHub Actions passes unset repo variables
+// through as an empty string rather than omitting them, and "" is not
+// nullish, so it would slip past "??" and become Number("") = 0.
+const digestHourRaw = process.env.DIGEST_HOUR?.trim();
+const DIGEST_HOUR = digestHourRaw ? Number(digestHourRaw) : 8;
 
 function formatDate(d: Date): string {
   return d.toLocaleString("en-US", {

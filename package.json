@@ -12,6 +12,7 @@
     "build:worker": "npm run build --workspace=apps/worker",
     "db:generate": "dotenv -e .env -- npm run generate --workspace=packages/db",
     "db:migrate": "dotenv -e .env -- npm run migrate --workspace=packages/db",
+    "worker:once": "dotenv -e .env -- npm run once --workspace=apps/worker",
     "moodle:login": "dotenv -e .env -- npm run login --workspace=apps/worker"
   },
   "devDependencies": {
