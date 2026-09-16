@@ -17,6 +17,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           color: "#e6e8ec",
           lineHeight: 1.55,
           WebkitFontSmoothing: "antialiased",
+          colorScheme: "dark",
         }}
       >
         <div style={{ maxWidth: 720, margin: "0 auto", padding: "24px 16px" }}>{children}</div>
