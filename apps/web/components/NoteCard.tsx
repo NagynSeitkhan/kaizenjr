@@ -24,26 +24,49 @@ export function NoteCard({
   content,
   dateLabel,
   showCategory,
+  pinned,
 }: {
   id: string;
   category: string;
   content: string;
   dateLabel: string;
   showCategory: boolean;
+  pinned: boolean;
 }) {
   const [mode, setMode] = useState<"view" | "edit">("view");
   const [expanded, setExpanded] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const isLong = content.length > TRUNCATE_LENGTH;
   const displayText = expanded || !isLong ? content : `${content.slice(0, TRUNCATE_LENGTH)}…`;
+
+  async function handleCopy() {
+    try {
+      await navigator.clipboard.writeText(content);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      // Clipboard access can be denied by the browser (e.g. no HTTPS,
+      // permissions policy) - failing silently is fine, nothing is lost.
+    }
+  }
 
   return (
     <li style={{ ...cardStyle, display: "flex", flexDirection: "column", gap: 6 }}>
       <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "#8b93a7" }}>
         <span>
+          {pinned && "📌 "}
           {showCategory && <strong>{category}</strong>} · {dateLabel}
         </span>
         <div style={{ display: "flex", gap: 12 }}>
+          <button type="button" onClick={handleCopy} style={linkButtonStyle}>
+            {copied ? "Copied!" : "Copy"}
+          </button>
+          <form method="POST" action={`/api/notes/${id}/pin`}>
+            <button type="submit" style={linkButtonStyle}>
+              {pinned ? "Unpin" : "Pin"}
+            </button>
+          </form>
           <button type="button" onClick={() => setMode(mode === "edit" ? "view" : "edit")} style={linkButtonStyle}>
             {mode === "edit" ? "Cancel" : "Edit"}
           </button>

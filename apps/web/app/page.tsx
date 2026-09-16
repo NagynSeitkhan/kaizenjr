@@ -6,7 +6,6 @@ import {
   cardStyle,
   sectionHeading,
   listStyle,
-  itemStyle,
   buttonLinkStyle,
   inputStyle,
   pageTitleStyle,
@@ -26,7 +25,9 @@ export default async function DashboardPage({
   }>;
 }) {
   const params = await searchParams;
-  const [googleCred, deadlines, courses, openTasks, doneCount] = await Promise.all([
+  const weekOut = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+
+  const [googleCred, deadlines, courses, openTasks, doneCount, weekCount, noteCount] = await Promise.all([
     prisma.integrationCredential.findUnique({ where: { provider: "google" } }),
     prisma.deadline.findMany({
       where: { dueAt: { gte: new Date() } },
@@ -42,6 +43,8 @@ export default async function DashboardPage({
       take: 20,
     }),
     prisma.task.count({ where: { status: { state: "DONE" } } }),
+    prisma.deadline.count({ where: { dueAt: { gte: new Date(), lte: weekOut } } }),
+    prisma.note.count(),
   ]);
 
   const googleConnected = Boolean(googleCred?.refreshTokenEnc);
@@ -64,6 +67,12 @@ export default async function DashboardPage({
           </form>
         </div>
       </header>
+
+      <div style={{ display: "flex", gap: 12 }}>
+        <StatTile value={weekCount} label="Due this week" />
+        <StatTile value={openTasks.length} label="Open tasks" />
+        <StatTile value={noteCount} label="Notes" />
+      </div>
 
       {params.googleConnected && <Banner tone="success">Google account connected.</Banner>}
       {params.googleError && (
@@ -124,12 +133,28 @@ export default async function DashboardPage({
         ) : (
           <ul style={listStyle}>
             {deadlines.map((d) => (
-              <li key={d.id} style={itemStyle}>
-                <span>
-                  {d.course ? <strong>[{d.course.name}] </strong> : null}
-                  {d.title}
-                </span>
-                <span style={{ color: "#8b93a7", fontSize: 13 }}>{formatDate(d.dueAt)}</span>
+              <li key={d.id} style={{ ...cardStyle, display: "flex", flexDirection: "column", gap: 8 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
+                  <span>
+                    {d.course ? <strong>[{d.course.name}] </strong> : null}
+                    {d.title}
+                  </span>
+                  <span style={{ color: "#8b93a7", fontSize: 13, whiteSpace: "nowrap" }}>
+                    {formatDate(d.dueAt)}
+                  </span>
+                </div>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <form method="POST" action={`/api/deadlines/${d.id}/toggle-notify`}>
+                    <button type="submit" style={toggleButtonStyle(d.notifyEnabled)}>
+                      {d.notifyEnabled ? "🔔 Notify: on" : "🔕 Notify: off"}
+                    </button>
+                  </form>
+                  <form method="POST" action={`/api/deadlines/${d.id}/snooze`}>
+                    <button type="submit" style={toggleButtonStyle(false)}>
+                      +1 day
+                    </button>
+                  </form>
+                </div>
               </li>
             ))}
           </ul>
@@ -160,7 +185,7 @@ export default async function DashboardPage({
         ) : (
           <ul style={listStyle}>
             {openTasks.map((t) => (
-              <li key={t.id} style={itemStyle}>
+              <li key={t.id} style={{ ...cardStyle, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
                 <span>
                   {t.title}
                   {t.context && (
@@ -168,18 +193,7 @@ export default async function DashboardPage({
                   )}
                 </span>
                 <form method="POST" action={`/api/tasks/${t.id}/complete`}>
-                  <button
-                    type="submit"
-                    style={{
-                      background: "none",
-                      border: "1px solid #2a2f3a",
-                      color: "#8b93a7",
-                      borderRadius: 6,
-                      padding: "4px 10px",
-                      cursor: "pointer",
-                      fontSize: 12,
-                    }}
-                  >
+                  <button type="submit" style={toggleButtonStyle(false)}>
                     Mark done
                   </button>
                 </form>
@@ -190,4 +204,25 @@ export default async function DashboardPage({
       </section>
     </main>
   );
+}
+
+function StatTile({ value, label }: { value: number; label: string }) {
+  return (
+    <div style={{ ...cardStyle, flex: 1, textAlign: "center" }}>
+      <div style={{ fontSize: 24, fontWeight: 700 }}>{value}</div>
+      <div style={{ fontSize: 12, color: "#8b93a7", marginTop: 2 }}>{label}</div>
+    </div>
+  );
+}
+
+function toggleButtonStyle(active: boolean): React.CSSProperties {
+  return {
+    background: "none",
+    border: "1px solid #2a2f3a",
+    color: active ? "#7ee2a8" : "#8b93a7",
+    borderRadius: 6,
+    padding: "4px 10px",
+    cursor: "pointer",
+    fontSize: 12,
+  };
 }

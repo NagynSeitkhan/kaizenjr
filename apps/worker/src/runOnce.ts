@@ -2,6 +2,7 @@ import "dotenv/config";
 import { syncCalendar } from "./integrations/google/calendar";
 import { syncTasksSheet } from "./integrations/sheets/tasksSheet";
 import { runDailyDigest } from "./jobs/dailyDigest";
+import { runWeeklyDigest } from "./jobs/weeklyDigest";
 import { checkDeadlineReminders } from "./jobs/checkDeadlineReminders";
 
 // Single-invocation entrypoint for a scheduler that isn't a long-running
@@ -15,6 +16,7 @@ async function main(): Promise<void> {
     ["syncTasksSheet", syncTasksSheet],
     ["checkDeadlineReminders", checkDeadlineReminders],
     ["runDailyDigest", runDailyDigest],
+    ["runWeeklyDigest", runWeeklyDigest],
   ];
 
   for (const [name, fn] of jobs) {

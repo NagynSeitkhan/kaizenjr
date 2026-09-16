@@ -57,7 +57,10 @@ export async function syncCalendar(): Promise<void> {
       }
 
       // A one-off event (assignment due date, exam, meeting, etc.) - store as a Deadline
-      // so it shows up on the dashboard and is eligible for T-24h/T-2h reminders later.
+      // so it shows up on the dashboard. notifyEnabled defaults to false here (unlike
+      // manually-added deadlines) since a calendar can have plenty of one-off events
+      // that aren't actually worth a Telegram ping - the user opts each one in from
+      // the dashboard rather than getting notified for everything automatically.
       await prisma.deadline.upsert({
         where: { source_externalId: { source: "GOOGLE_CALENDAR", externalId: event.id } },
         create: {
@@ -67,6 +70,7 @@ export async function syncCalendar(): Promise<void> {
           source: "GOOGLE_CALENDAR",
           externalId: event.id,
           url: event.htmlLink ?? null,
+          notifyEnabled: false,
         },
         update: {
           title: event.summary,

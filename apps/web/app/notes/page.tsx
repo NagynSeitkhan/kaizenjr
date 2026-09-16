@@ -19,6 +19,7 @@ export default async function NotesPage({
 }: {
   searchParams: Promise<{
     category?: string;
+    q?: string;
     formError?: string;
     added?: string;
     deleted?: string;
@@ -27,6 +28,7 @@ export default async function NotesPage({
 }) {
   const params = await searchParams;
   const activeCategory = params.category?.trim() || null;
+  const query = params.q?.trim() || null;
 
   const [categoryRows, notes] = await Promise.all([
     prisma.note.findMany({
@@ -35,8 +37,18 @@ export default async function NotesPage({
       orderBy: { category: "asc" },
     }),
     prisma.note.findMany({
-      where: activeCategory ? { category: activeCategory } : undefined,
-      orderBy: { createdAt: "desc" },
+      where: {
+        category: activeCategory ?? undefined,
+        ...(query
+          ? {
+              OR: [
+                { content: { contains: query, mode: "insensitive" } },
+                { category: { contains: query, mode: "insensitive" } },
+              ],
+            }
+          : {}),
+      },
+      orderBy: [{ pinned: "desc" }, { createdAt: "desc" }],
       take: 200,
     }),
   ]);
@@ -89,6 +101,13 @@ export default async function NotesPage({
         </button>
       </form>
 
+      <form method="GET" action="/notes" style={{ display: "flex", gap: 8 }}>
+        <input name="q" placeholder="Search notes..." defaultValue={query ?? ""} style={{ ...inputStyle, flex: 1 }} />
+        <button type="submit" style={{ ...buttonLinkStyle, border: "none", cursor: "pointer" }}>
+          Search
+        </button>
+      </form>
+
       {categories.length > 0 && (
         <nav style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           <Link href="/notes" style={pillStyle(!activeCategory)}>
@@ -104,7 +123,7 @@ export default async function NotesPage({
 
       <section>
         <h2 style={sectionHeading}>
-          {activeCategory ?? "All notes"} ({notes.length})
+          {query ? `Results for "${query}"` : activeCategory ?? "All notes"} ({notes.length})
         </h2>
         {notes.length === 0 ? (
           <p style={{ color: "#8b93a7" }}>No notes yet.</p>
@@ -118,6 +137,7 @@ export default async function NotesPage({
                 content={n.content}
                 dateLabel={formatUserDateTime(n.createdAt)}
                 showCategory={!activeCategory}
+                pinned={n.pinned}
               />
             ))}
           </ul>

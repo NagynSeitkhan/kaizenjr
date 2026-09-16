@@ -59,6 +59,7 @@ model Deadline {
   externalId    String
   url           String?
   imageUrl      String?
+  notifyEnabled Boolean           @default(true)
   createdAt     DateTime          @default(now())
   updatedAt     DateTime          @updatedAt
   notifications NotificationLog[]
@@ -107,6 +108,7 @@ model Note {
   id        String   @id @default(cuid())
   category  String
   content   String
+  pinned    Boolean  @default(false)
   createdAt DateTime @default(now())
 
   @@index([category])
