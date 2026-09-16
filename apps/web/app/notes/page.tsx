@@ -2,21 +2,9 @@ import Link from "next/link";
 import { prisma } from "@course-dashboard/db";
 import { formatUserDateTime } from "@course-dashboard/shared";
 import { Banner, cardStyle, sectionHeading, inputStyle, buttonLinkStyle, pillStyle } from "@/lib/ui";
+import { NoteCard } from "@/components/NoteCard";
 
 export const dynamic = "force-dynamic";
-
-function linkify(text: string): React.ReactNode[] {
-  const parts = text.split(/(https?:\/\/[^\s]+)/g);
-  return parts.map((part, i) =>
-    /^https?:\/\//.test(part) ? (
-      <a key={i} href={part} target="_blank" rel="noreferrer noopener" style={{ color: "#4f7cff" }}>
-        {part}
-      </a>
-    ) : (
-      <span key={i}>{part}</span>
-    )
-  );
-}
 
 export default async function NotesPage({
   searchParams,
@@ -115,51 +103,14 @@ export default async function NotesPage({
         ) : (
           <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: 10 }}>
             {notes.map((n) => (
-              <li key={n.id} style={{ ...cardStyle, display: "flex", flexDirection: "column", gap: 6 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "#8b93a7" }}>
-                  <span>
-                    {!activeCategory && <strong>{n.category}</strong>} · {formatUserDateTime(n.createdAt)}
-                  </span>
-                  <form method="POST" action={`/api/notes/${n.id}/delete`}>
-                    <button
-                      type="submit"
-                      style={{ background: "none", border: "none", color: "#8b93a7", cursor: "pointer", fontSize: 12 }}
-                    >
-                      Delete
-                    </button>
-                  </form>
-                </div>
-                <p style={{ margin: 0, whiteSpace: "pre-wrap" }}>{linkify(n.content)}</p>
-                <details>
-                  <summary style={{ cursor: "pointer", fontSize: 12, color: "#8b93a7" }}>Edit</summary>
-                  <form
-                    method="POST"
-                    action={`/api/notes/${n.id}`}
-                    style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 10 }}
-                  >
-                    <input
-                      name="category"
-                      defaultValue={n.category}
-                      required
-                      list="category-options"
-                      style={inputStyle}
-                    />
-                    <textarea
-                      name="content"
-                      defaultValue={n.content}
-                      required
-                      rows={3}
-                      style={{ ...inputStyle, resize: "vertical", fontFamily: "inherit" }}
-                    />
-                    <button
-                      type="submit"
-                      style={{ ...buttonLinkStyle, border: "none", cursor: "pointer", alignSelf: "flex-start" }}
-                    >
-                      Save changes
-                    </button>
-                  </form>
-                </details>
-              </li>
+              <NoteCard
+                key={n.id}
+                id={n.id}
+                category={n.category}
+                content={n.content}
+                dateLabel={formatUserDateTime(n.createdAt)}
+                showCategory={!activeCategory}
+              />
             ))}
           </ul>
         )}
