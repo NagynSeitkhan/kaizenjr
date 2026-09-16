@@ -21,7 +21,13 @@ function linkify(text: string): React.ReactNode[] {
 export default async function NotesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ category?: string; formError?: string; added?: string; deleted?: string }>;
+  searchParams: Promise<{
+    category?: string;
+    formError?: string;
+    added?: string;
+    deleted?: string;
+    updated?: string;
+  }>;
 }) {
   const params = await searchParams;
   const activeCategory = params.category?.trim() || null;
@@ -52,6 +58,7 @@ export default async function NotesPage({
       {params.formError && <Banner tone="error">{params.formError}</Banner>}
       {params.added && <Banner tone="success">Note added.</Banner>}
       {params.deleted && <Banner tone="success">Note deleted.</Banner>}
+      {params.updated && <Banner tone="success">Note updated.</Banner>}
 
       <form
         method="POST"
@@ -123,6 +130,35 @@ export default async function NotesPage({
                   </form>
                 </div>
                 <p style={{ margin: 0, whiteSpace: "pre-wrap" }}>{linkify(n.content)}</p>
+                <details>
+                  <summary style={{ cursor: "pointer", fontSize: 12, color: "#8b93a7" }}>Edit</summary>
+                  <form
+                    method="POST"
+                    action={`/api/notes/${n.id}`}
+                    style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 10 }}
+                  >
+                    <input
+                      name="category"
+                      defaultValue={n.category}
+                      required
+                      list="category-options"
+                      style={inputStyle}
+                    />
+                    <textarea
+                      name="content"
+                      defaultValue={n.content}
+                      required
+                      rows={3}
+                      style={{ ...inputStyle, resize: "vertical", fontFamily: "inherit" }}
+                    />
+                    <button
+                      type="submit"
+                      style={{ ...buttonLinkStyle, border: "none", cursor: "pointer", alignSelf: "flex-start" }}
+                    >
+                      Save changes
+                    </button>
+                  </form>
+                </details>
               </li>
             ))}
           </ul>
