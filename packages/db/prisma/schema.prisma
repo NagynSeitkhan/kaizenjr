@@ -102,6 +102,15 @@ model EmailFlag {
   includedInDigest Boolean  @default(false)
 }
 
+model Note {
+  id        String   @id @default(cuid())
+  category  String
+  content   String
+  createdAt DateTime @default(now())
+
+  @@index([category])
+}
+
 model NotificationLog {
   id                String           @id @default(cuid())
   deadlineId        String?

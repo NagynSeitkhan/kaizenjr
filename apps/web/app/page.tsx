@@ -1,5 +1,8 @@
+import Link from "next/link";
 import { prisma } from "@course-dashboard/db";
 import { formatUserDateTime as formatDate } from "@course-dashboard/shared";
+import { Banner, cardStyle, sectionHeading, listStyle, itemStyle, buttonLinkStyle, inputStyle } from "@/lib/ui";
+import { DeadlineDateFields } from "@/components/DeadlineDateFields";
 
 export const dynamic = "force-dynamic";
 
@@ -38,14 +41,19 @@ export default async function DashboardPage({
     <main style={{ display: "flex", flexDirection: "column", gap: 28 }}>
       <header style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
         <h1 style={{ fontSize: 22, margin: 0 }}>Dashboard</h1>
-        <form method="POST" action="/api/auth/logout">
-          <button
-            type="submit"
-            style={{ background: "none", border: "none", color: "#8b93a7", cursor: "pointer" }}
-          >
-            Log out
-          </button>
-        </form>
+        <div style={{ display: "flex", gap: 16, alignItems: "baseline" }}>
+          <Link href="/notes" style={{ color: "#8b93a7", fontSize: 14 }}>
+            Notes
+          </Link>
+          <form method="POST" action="/api/auth/logout">
+            <button
+              type="submit"
+              style={{ background: "none", border: "none", color: "#8b93a7", cursor: "pointer" }}
+            >
+              Log out
+            </button>
+          </form>
+        </div>
       </header>
 
       {params.googleConnected && <Banner tone="success">Google account connected.</Banner>}
@@ -85,7 +93,7 @@ export default async function DashboardPage({
           style={{ ...cardStyle, display: "flex", flexDirection: "column", gap: 10 }}
         >
           <input name="title" placeholder="Title (e.g. CSCI 152 Assignment 3)" required style={inputStyle} />
-          <input name="dueAt" type="datetime-local" required style={inputStyle} />
+          <DeadlineDateFields />
           <input name="description" placeholder="Notes (optional)" style={inputStyle} />
           <button type="submit" style={{ ...buttonLinkStyle, border: "none", cursor: "pointer", alignSelf: "flex-start" }}>
             Add deadline
@@ -169,71 +177,3 @@ export default async function DashboardPage({
     </main>
   );
 }
-
-function Banner({ tone, children }: { tone: "success" | "error"; children: React.ReactNode }) {
-  return (
-    <div
-      style={{
-        padding: "10px 14px",
-        borderRadius: 8,
-        background: tone === "success" ? "#12331f" : "#3a1414",
-        color: tone === "success" ? "#7ee2a8" : "#f28b82",
-        fontSize: 14,
-      }}
-    >
-      {children}
-    </div>
-  );
-}
-
-const cardStyle: React.CSSProperties = {
-  background: "#151821",
-  borderRadius: 12,
-  padding: 16,
-};
-
-const sectionHeading: React.CSSProperties = {
-  fontSize: 15,
-  color: "#8b93a7",
-  fontWeight: 600,
-  textTransform: "uppercase",
-  letterSpacing: 0.5,
-  marginBottom: 10,
-};
-
-const listStyle: React.CSSProperties = {
-  listStyle: "none",
-  margin: 0,
-  padding: 0,
-  display: "flex",
-  flexDirection: "column",
-  gap: 8,
-};
-
-const itemStyle: React.CSSProperties = {
-  background: "#151821",
-  borderRadius: 8,
-  padding: "10px 14px",
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
-  gap: 12,
-};
-
-const buttonLinkStyle: React.CSSProperties = {
-  padding: "8px 14px",
-  borderRadius: 8,
-  background: "#4f7cff",
-  color: "white",
-  textDecoration: "none",
-  fontSize: 14,
-};
-
-const inputStyle: React.CSSProperties = {
-  padding: "10px 12px",
-  borderRadius: 8,
-  border: "1px solid #2a2f3a",
-  background: "#0b0d12",
-  color: "#e6e8ec",
-  fontSize: 14,
-};

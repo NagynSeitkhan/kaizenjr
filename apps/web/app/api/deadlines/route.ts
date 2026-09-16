@@ -15,14 +15,15 @@ function parseLocalDateTime(raw: string): Date | null {
 export async function POST(req: NextRequest) {
   const formData = await req.formData();
   const title = String(formData.get("title") ?? "").trim();
-  const dueAtRaw = String(formData.get("dueAt") ?? "");
+  const dueDateRaw = String(formData.get("dueDate") ?? "");
+  const dueTimeRaw = String(formData.get("dueTime") ?? "");
   const description = String(formData.get("description") ?? "").trim();
 
-  if (!title || !dueAtRaw) {
+  if (!title || !dueDateRaw || !dueTimeRaw) {
     return NextResponse.redirect(new URL("/?formError=Title and due date are required", req.url));
   }
 
-  const dueAt = parseLocalDateTime(dueAtRaw);
+  const dueAt = parseLocalDateTime(`${dueDateRaw}T${dueTimeRaw}`);
   if (!dueAt) {
     return NextResponse.redirect(new URL("/?formError=Invalid date", req.url));
   }
