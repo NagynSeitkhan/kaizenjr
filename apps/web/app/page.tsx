@@ -90,11 +90,16 @@ export default async function DashboardPage({
         <form
           method="POST"
           action="/api/deadlines"
+          encType="multipart/form-data"
           style={{ ...cardStyle, display: "flex", flexDirection: "column", gap: 10 }}
         >
           <input name="title" placeholder="Title (e.g. CSCI 152 Assignment 3)" required style={inputStyle} />
           <DeadlineDateFields />
           <input name="description" placeholder="Notes (optional)" style={inputStyle} />
+          <label style={{ fontSize: 13, color: "#8b93a7" }}>
+            Attach a photo (optional) — sent along with the Telegram reminder
+            <input name="image" type="file" accept="image/*" style={{ display: "block", marginTop: 6 }} />
+          </label>
           <button type="submit" style={{ ...buttonLinkStyle, border: "none", cursor: "pointer", alignSelf: "flex-start" }}>
             Add deadline
           </button>
