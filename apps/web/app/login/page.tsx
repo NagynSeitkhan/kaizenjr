@@ -19,7 +19,7 @@ export default async function LoginPage({
           width: 280,
         }}
       >
-        <h1 style={{ fontSize: 18, margin: 0 }}>Course Dashboard</h1>
+        <h1 style={{ fontSize: 18, margin: 0, fontWeight: 700, letterSpacing: "-0.01em" }}>Course Dashboard</h1>
         <input
           type="password"
           name="password"

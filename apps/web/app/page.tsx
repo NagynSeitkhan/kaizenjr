@@ -1,7 +1,16 @@
 import Link from "next/link";
 import { prisma } from "@course-dashboard/db";
 import { formatUserDateTime as formatDate } from "@course-dashboard/shared";
-import { Banner, cardStyle, sectionHeading, listStyle, itemStyle, buttonLinkStyle, inputStyle } from "@/lib/ui";
+import {
+  Banner,
+  cardStyle,
+  sectionHeading,
+  listStyle,
+  itemStyle,
+  buttonLinkStyle,
+  inputStyle,
+  pageTitleStyle,
+} from "@/lib/ui";
 import { DeadlineDateFields } from "@/components/DeadlineDateFields";
 
 export const dynamic = "force-dynamic";
@@ -40,7 +49,7 @@ export default async function DashboardPage({
   return (
     <main style={{ display: "flex", flexDirection: "column", gap: 28 }}>
       <header style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-        <h1 style={{ fontSize: 22, margin: 0 }}>Dashboard</h1>
+        <h1 style={pageTitleStyle}>Dashboard</h1>
         <div style={{ display: "flex", gap: 16, alignItems: "baseline" }}>
           <Link href="/notes" style={{ color: "#8b93a7", fontSize: 14 }}>
             Notes

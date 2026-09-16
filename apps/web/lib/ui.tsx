@@ -14,6 +14,13 @@ export function Banner({ tone, children }: { tone: "success" | "error"; children
   );
 }
 
+export const pageTitleStyle: React.CSSProperties = {
+  fontSize: 22,
+  margin: 0,
+  fontWeight: 700,
+  letterSpacing: "-0.01em",
+};
+
 export const cardStyle: React.CSSProperties = {
   background: "#151821",
   borderRadius: 12,
@@ -21,11 +28,11 @@ export const cardStyle: React.CSSProperties = {
 };
 
 export const sectionHeading: React.CSSProperties = {
-  fontSize: 15,
+  fontSize: 13,
   color: "#8b93a7",
   fontWeight: 600,
   textTransform: "uppercase",
-  letterSpacing: 0.5,
+  letterSpacing: "0.06em",
   marginBottom: 10,
 };
 

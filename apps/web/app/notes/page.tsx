@@ -1,7 +1,15 @@
 import Link from "next/link";
 import { prisma } from "@course-dashboard/db";
 import { formatUserDateTime } from "@course-dashboard/shared";
-import { Banner, cardStyle, sectionHeading, inputStyle, buttonLinkStyle, pillStyle } from "@/lib/ui";
+import {
+  Banner,
+  cardStyle,
+  sectionHeading,
+  inputStyle,
+  buttonLinkStyle,
+  pillStyle,
+  pageTitleStyle,
+} from "@/lib/ui";
 import { NoteCard } from "@/components/NoteCard";
 
 export const dynamic = "force-dynamic";
@@ -37,7 +45,7 @@ export default async function NotesPage({
   return (
     <main style={{ display: "flex", flexDirection: "column", gap: 24 }}>
       <header style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-        <h1 style={{ fontSize: 22, margin: 0 }}>Notes</h1>
+        <h1 style={pageTitleStyle}>Notes</h1>
         <Link href="/" style={{ color: "#8b93a7", fontSize: 14 }}>
           ← Dashboard
         </Link>
