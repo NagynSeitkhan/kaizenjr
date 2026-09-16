@@ -154,6 +154,11 @@ export default async function DashboardPage({
                       +1 day
                     </button>
                   </form>
+                  <form method="POST" action={`/api/deadlines/${d.id}/delete`}>
+                    <button type="submit" style={toggleButtonStyle(false)}>
+                      Delete
+                    </button>
+                  </form>
                 </div>
               </li>
             ))}
