@@ -11,6 +11,7 @@ import {
   pageTitleStyle,
 } from "@/lib/ui";
 import { DeadlineDateFields } from "@/components/DeadlineDateFields";
+import { TaskDueDateToggle } from "@/components/TaskDueDateToggle";
 
 export const dynamic = "force-dynamic";
 
@@ -40,7 +41,7 @@ export default async function DashboardPage({
       prisma.task.findMany({
         where: { status: { state: { not: "DONE" } } },
         include: { status: true },
-        orderBy: { createdAt: "desc" },
+        orderBy: [{ dueAt: { sort: "asc", nulls: "last" } }, { createdAt: "desc" }],
         take: 20,
       }),
       prisma.task.count({ where: { status: { state: "DONE" } } }),
@@ -218,6 +219,7 @@ export default async function DashboardPage({
             >
               <input name="title" placeholder="Task title" required style={inputStyle} />
               <input name="context" placeholder="Notes (optional)" style={inputStyle} />
+              <TaskDueDateToggle />
               <button
                 type="submit"
                 style={{ ...buttonLinkStyle, border: "none", cursor: "pointer", alignSelf: "flex-start" }}
@@ -236,19 +238,32 @@ export default async function DashboardPage({
             ) : (
               <ul style={listStyle}>
                 {openTasks.map((t) => (
-                  <li
-                    key={t.id}
-                    style={{ ...cardStyle, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}
-                  >
-                    <span>
-                      {t.title}
-                      {t.context && <span style={{ color: "#8b93a7" }}> — {t.context}</span>}
-                    </span>
-                    <form method="POST" action={`/api/tasks/${t.id}/complete`}>
-                      <button type="submit" style={toggleButtonStyle(false)}>
-                        Mark done
-                      </button>
-                    </form>
+                  <li key={t.id} style={{ ...cardStyle, display: "flex", flexDirection: "column", gap: 8 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
+                      <span>
+                        {t.title}
+                        {t.context && <span style={{ color: "#8b93a7" }}> — {t.context}</span>}
+                      </span>
+                      {t.dueAt && (
+                        <span style={{ color: "#8b93a7", fontSize: 13, whiteSpace: "nowrap" }}>
+                          {formatDate(t.dueAt)}
+                        </span>
+                      )}
+                    </div>
+                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                      <form method="POST" action={`/api/tasks/${t.id}/complete`}>
+                        <button type="submit" style={toggleButtonStyle(false)}>
+                          Mark done
+                        </button>
+                      </form>
+                      {t.dueAt && (
+                        <form method="POST" action={`/api/tasks/${t.id}/snooze`}>
+                          <button type="submit" style={toggleButtonStyle(false)}>
+                            +1 day
+                          </button>
+                        </form>
+                      )}
+                    </div>
                   </li>
                 ))}
               </ul>

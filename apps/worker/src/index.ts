@@ -5,6 +5,7 @@ import { syncTasksSheet } from "./integrations/sheets/tasksSheet";
 import { runDailyDigest } from "./jobs/dailyDigest";
 import { runWeeklyDigest } from "./jobs/weeklyDigest";
 import { checkDeadlineReminders } from "./jobs/checkDeadlineReminders";
+import { checkTaskReminders } from "./jobs/checkTaskReminders";
 
 async function runSafely(name: string, fn: () => Promise<void>): Promise<void> {
   try {
@@ -19,6 +20,7 @@ console.log("[worker] starting cron scheduler");
 cron.schedule("*/30 * * * *", () => runSafely("syncCalendar", syncCalendar));
 cron.schedule("*/45 * * * *", () => runSafely("syncTasksSheet", syncTasksSheet));
 cron.schedule("*/15 * * * *", () => runSafely("checkDeadlineReminders", checkDeadlineReminders));
+cron.schedule("*/15 * * * *", () => runSafely("checkTaskReminders", checkTaskReminders));
 cron.schedule("*/15 * * * *", () => runSafely("dailyDigest", runDailyDigest));
 cron.schedule("*/15 * * * *", () => runSafely("weeklyDigest", runWeeklyDigest));
 
@@ -26,5 +28,6 @@ cron.schedule("*/15 * * * *", () => runSafely("weeklyDigest", runWeeklyDigest));
 void runSafely("syncCalendar", syncCalendar);
 void runSafely("syncTasksSheet", syncTasksSheet);
 void runSafely("checkDeadlineReminders", checkDeadlineReminders);
+void runSafely("checkTaskReminders", checkTaskReminders);
 void runSafely("dailyDigest", runDailyDigest);
 void runSafely("weeklyDigest", runWeeklyDigest);

@@ -1,18 +1,8 @@
 import { NextRequest } from "next/server";
 import { put } from "@vercel/blob";
 import { prisma } from "@course-dashboard/db";
-import { USER_UTC_OFFSET } from "@course-dashboard/shared";
+import { parseUserLocalDateTime } from "@course-dashboard/shared";
 import { redirectAfterAction } from "@/lib/redirect";
-
-// The <input type="datetime-local"> value has no timezone info - it's the
-// browser's local wall-clock time. Vercel's serverless functions run with
-// TZ=UTC, so `new Date(rawValue)` would silently reinterpret that wall-clock
-// string as UTC instead of the user's real timezone, so we pin the offset
-// explicitly (see packages/shared/src/time.ts for the display-side match).
-function parseLocalDateTime(raw: string): Date | null {
-  const date = new Date(`${raw}${USER_UTC_OFFSET}`);
-  return Number.isNaN(date.getTime()) ? null : date;
-}
 
 export async function POST(req: NextRequest) {
   const formData = await req.formData();
@@ -26,7 +16,7 @@ export async function POST(req: NextRequest) {
     return redirectAfterAction(new URL("/?formError=Title and due date are required", req.url));
   }
 
-  const dueAt = parseLocalDateTime(`${dueDateRaw}T${dueTimeRaw}`);
+  const dueAt = parseUserLocalDateTime(`${dueDateRaw}T${dueTimeRaw}`);
   if (!dueAt) {
     return redirectAfterAction(new URL("/?formError=Invalid date", req.url));
   }

@@ -1,12 +1,7 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@course-dashboard/db";
-import { USER_UTC_OFFSET } from "@course-dashboard/shared";
+import { parseUserLocalDateTime } from "@course-dashboard/shared";
 import { redirectAfterAction } from "@/lib/redirect";
-
-function parseLocalDateTime(raw: string): Date | null {
-  const date = new Date(`${raw}${USER_UTC_OFFSET}`);
-  return Number.isNaN(date.getTime()) ? null : date;
-}
 
 // Turns a note into a one-off Deadline so it rides the exact same T-24h/T-2h
 // Telegram reminder machinery deadlines already use, rather than building a
@@ -21,7 +16,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     return redirectAfterAction(new URL("/notes?formError=Pick a date and time for the reminder", req.url));
   }
 
-  const dueAt = parseLocalDateTime(`${dueDateRaw}T${dueTimeRaw}`);
+  const dueAt = parseUserLocalDateTime(`${dueDateRaw}T${dueTimeRaw}`);
   if (!dueAt) {
     return redirectAfterAction(new URL("/notes?formError=Invalid date", req.url));
   }

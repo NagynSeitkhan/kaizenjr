@@ -4,6 +4,7 @@ import { syncTasksSheet } from "./integrations/sheets/tasksSheet";
 import { runDailyDigest } from "./jobs/dailyDigest";
 import { runWeeklyDigest } from "./jobs/weeklyDigest";
 import { checkDeadlineReminders } from "./jobs/checkDeadlineReminders";
+import { checkTaskReminders } from "./jobs/checkTaskReminders";
 
 // Single-invocation entrypoint for a scheduler that isn't a long-running
 // process (e.g. GitHub Actions `schedule` cron) - runs every job once, then
@@ -15,6 +16,7 @@ async function main(): Promise<void> {
     ["syncCalendar", syncCalendar],
     ["syncTasksSheet", syncTasksSheet],
     ["checkDeadlineReminders", checkDeadlineReminders],
+    ["checkTaskReminders", checkTaskReminders],
     ["runDailyDigest", runDailyDigest],
     ["runWeeklyDigest", runWeeklyDigest],
   ];

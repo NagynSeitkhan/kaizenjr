@@ -5,6 +5,15 @@
 export const USER_TIMEZONE = "Asia/Almaty";
 export const USER_UTC_OFFSET = "+05:00";
 
+// Combines a "YYYY-MM-DD" + "HH:mm" pair (from the app's own date/time
+// picker fields) into the correct absolute instant, given the fixed
+// USER_UTC_OFFSET assumption above. Used everywhere a form takes a
+// date+time from the user (deadlines, task due dates, note reminders).
+export function parseUserLocalDateTime(dateAndTime: string): Date | null {
+  const date = new Date(`${dateAndTime}${USER_UTC_OFFSET}`);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
 export function formatUserDateTime(d: Date): string {
   return d.toLocaleString("en-US", {
     timeZone: USER_TIMEZONE,
