@@ -1,5 +1,6 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { prisma } from "@course-dashboard/db";
+import { redirectAfterAction } from "@/lib/redirect";
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -7,5 +8,5 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     prisma.notificationLog.deleteMany({ where: { deadlineId: id } }),
     prisma.deadline.delete({ where: { id } }),
   ]);
-  return NextResponse.redirect(new URL("/", req.url));
+  return redirectAfterAction(new URL("/", req.url));
 }

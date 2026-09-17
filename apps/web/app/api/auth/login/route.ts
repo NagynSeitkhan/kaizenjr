@@ -1,5 +1,6 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { SESSION_COOKIE, expectedSessionToken, secureCompare } from "@/lib/session";
+import { redirectAfterAction } from "@/lib/redirect";
 
 export async function POST(req: NextRequest) {
   const formData = await req.formData();
@@ -7,10 +8,10 @@ export async function POST(req: NextRequest) {
   const expected = process.env.DASHBOARD_PASSWORD ?? "";
 
   if (!expected || !secureCompare(password, expected)) {
-    return NextResponse.redirect(new URL("/login?error=1", req.url));
+    return redirectAfterAction(new URL("/login?error=1", req.url));
   }
 
-  const res = NextResponse.redirect(new URL("/", req.url));
+  const res = redirectAfterAction(new URL("/", req.url));
   res.cookies.set(SESSION_COOKIE, await expectedSessionToken(), {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",

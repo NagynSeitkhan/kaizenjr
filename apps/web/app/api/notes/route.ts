@@ -1,5 +1,6 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { prisma } from "@course-dashboard/db";
+import { redirectAfterAction } from "@/lib/redirect";
 
 export async function POST(req: NextRequest) {
   const formData = await req.formData();
@@ -7,7 +8,7 @@ export async function POST(req: NextRequest) {
   const content = String(formData.get("content") ?? "").trim();
 
   if (!category || !content) {
-    return NextResponse.redirect(new URL("/notes?formError=Category and note are required", req.url));
+    return redirectAfterAction(new URL("/notes?formError=Category and note are required", req.url));
   }
 
   try {
@@ -15,12 +16,12 @@ export async function POST(req: NextRequest) {
   } catch (err) {
     const message = err instanceof Error ? err.message : "unknown error";
     console.error("[api/notes] create failed:", err);
-    return NextResponse.redirect(
+    return redirectAfterAction(
       new URL(`/notes?formError=${encodeURIComponent(`Failed to save: ${message}`)}`, req.url)
     );
   }
 
-  return NextResponse.redirect(
+  return redirectAfterAction(
     new URL(`/notes?category=${encodeURIComponent(category)}&added=1`, req.url)
   );
 }

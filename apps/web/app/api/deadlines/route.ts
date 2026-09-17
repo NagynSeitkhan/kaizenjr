@@ -1,7 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { put } from "@vercel/blob";
 import { prisma } from "@course-dashboard/db";
 import { USER_UTC_OFFSET } from "@course-dashboard/shared";
+import { redirectAfterAction } from "@/lib/redirect";
 
 // The <input type="datetime-local"> value has no timezone info - it's the
 // browser's local wall-clock time. Vercel's serverless functions run with
@@ -22,12 +23,12 @@ export async function POST(req: NextRequest) {
   const image = formData.get("image");
 
   if (!title || !dueDateRaw || !dueTimeRaw) {
-    return NextResponse.redirect(new URL("/?formError=Title and due date are required", req.url));
+    return redirectAfterAction(new URL("/?formError=Title and due date are required", req.url));
   }
 
   const dueAt = parseLocalDateTime(`${dueDateRaw}T${dueTimeRaw}`);
   if (!dueAt) {
-    return NextResponse.redirect(new URL("/?formError=Invalid date", req.url));
+    return redirectAfterAction(new URL("/?formError=Invalid date", req.url));
   }
 
   try {
@@ -52,10 +53,10 @@ export async function POST(req: NextRequest) {
   } catch (err) {
     const message = err instanceof Error ? err.message : "unknown error";
     console.error("[api/deadlines] create failed:", err);
-    return NextResponse.redirect(
+    return redirectAfterAction(
       new URL(`/?formError=${encodeURIComponent(`Failed to save: ${message}`)}`, req.url)
     );
   }
 
-  return NextResponse.redirect(new URL("/?added=deadline", req.url));
+  return redirectAfterAction(new URL("/?added=deadline", req.url));
 }

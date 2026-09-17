@@ -1,5 +1,6 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { prisma } from "@course-dashboard/db";
+import { redirectAfterAction } from "@/lib/redirect";
 
 export async function POST(req: NextRequest) {
   const formData = await req.formData();
@@ -7,7 +8,7 @@ export async function POST(req: NextRequest) {
   const context = String(formData.get("context") ?? "").trim();
 
   if (!title) {
-    return NextResponse.redirect(new URL("/?formError=Title is required", req.url));
+    return redirectAfterAction(new URL("/?formError=Title is required", req.url));
   }
 
   try {
@@ -27,10 +28,10 @@ export async function POST(req: NextRequest) {
   } catch (err) {
     const message = err instanceof Error ? err.message : "unknown error";
     console.error("[api/tasks] create failed:", err);
-    return NextResponse.redirect(
+    return redirectAfterAction(
       new URL(`/?formError=${encodeURIComponent(`Failed to save: ${message}`)}`, req.url)
     );
   }
 
-  return NextResponse.redirect(new URL("/?added=task", req.url));
+  return redirectAfterAction(new URL("/?added=task", req.url));
 }

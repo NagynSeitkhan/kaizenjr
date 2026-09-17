@@ -1,5 +1,6 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { prisma } from "@course-dashboard/db";
+import { redirectAfterAction } from "@/lib/redirect";
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -8,7 +9,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const content = String(formData.get("content") ?? "").trim();
 
   if (!category || !content) {
-    return NextResponse.redirect(new URL("/notes?formError=Category and note are required", req.url));
+    return redirectAfterAction(new URL("/notes?formError=Category and note are required", req.url));
   }
 
   try {
@@ -16,12 +17,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   } catch (err) {
     const message = err instanceof Error ? err.message : "unknown error";
     console.error("[api/notes/:id] update failed:", err);
-    return NextResponse.redirect(
+    return redirectAfterAction(
       new URL(`/notes?formError=${encodeURIComponent(`Failed to update: ${message}`)}`, req.url)
     );
   }
 
-  return NextResponse.redirect(
+  return redirectAfterAction(
     new URL(`/notes?category=${encodeURIComponent(category)}&updated=1`, req.url)
   );
 }
