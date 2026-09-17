@@ -1,0 +1,25 @@
+/* The native file input's button and placeholder text render with the
+   browser's default UI font, not the page font - ::file-selector-button
+   is a pseudo-element, which inline React styles can't target, so this
+   is the one thing in the app that needs an actual stylesheet. */
+input[type="file"] {
+  font-family: inherit;
+  font-size: 13px;
+  color: #8b93a7;
+}
+
+input[type="file"]::file-selector-button {
+  font-family: inherit;
+  font-size: 13px;
+  padding: 6px 12px;
+  margin-right: 10px;
+  border-radius: 6px;
+  border: 1px solid #2a2f3a;
+  background: #1c212c;
+  color: #e6e8ec;
+  cursor: pointer;
+}
+
+input[type="file"]::file-selector-button:hover {
+  background: #262c39;
+}

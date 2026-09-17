@@ -114,6 +114,12 @@ model Note {
   @@index([category])
 }
 
+model Setting {
+  id    String @id @default(cuid())
+  key   String @unique
+  value String
+}
+
 model NotificationLog {
   id                String           @id @default(cuid())
   deadlineId        String?

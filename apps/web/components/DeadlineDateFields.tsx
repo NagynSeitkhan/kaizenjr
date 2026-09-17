@@ -14,9 +14,9 @@ function pad(n: number): string {
 }
 
 // Renders every date/time value with our own literal text (day numbers,
-// zero-padded hour/minute options) instead of a native <input type="date"/
-// "time">, whose *display* format follows the OS/browser locale and can't
-// be forced from the page - the underlying submitted value was always
+// zero-padded hour/minute) instead of a native <input type="date"/"time">,
+// whose *display* format follows the OS/browser locale and can't be forced
+// from the page - the underlying submitted value was always
 // locale-independent (YYYY-MM-DD / HH:mm), only the on-screen rendering
 // wasn't controllable. This sidesteps that entirely.
 export function DeadlineDateFields() {
@@ -28,7 +28,8 @@ export function DeadlineDateFields() {
   const [open, setOpen] = useState(false);
   const [hour, setHour] = useState("09");
   const [minute, setMinute] = useState("00");
-  const hourRef = useRef<HTMLSelectElement>(null);
+  const hourRef = useRef<HTMLInputElement>(null);
+  const minuteRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     // Set today via effect (client-only) rather than at render time, so the
@@ -49,6 +50,7 @@ export function DeadlineDateFields() {
     setDay(d);
     setOpen(false);
     hourRef.current?.focus();
+    hourRef.current?.select();
   }
 
   function changeMonth(delta: number) {
@@ -66,6 +68,35 @@ export function DeadlineDateFields() {
     setViewYear(y);
   }
 
+  // Typing 2 digits auto-clamps/pads and jumps to the next field, so the
+  // whole date+time can be entered as one continuous "click, type, type,
+  // type, type" motion without ever touching a dropdown.
+  function handleHourChange(raw: string) {
+    const digits = raw.replace(/\D/g, "").slice(0, 2);
+    setHour(digits);
+    if (digits.length === 2) {
+      setHour(pad(Math.min(23, parseInt(digits, 10))));
+      minuteRef.current?.focus();
+      minuteRef.current?.select();
+    }
+  }
+
+  function handleMinuteChange(raw: string) {
+    const digits = raw.replace(/\D/g, "").slice(0, 2);
+    setMinute(digits);
+    if (digits.length === 2) {
+      setMinute(pad(Math.min(59, parseInt(digits, 10))));
+    }
+  }
+
+  function handleHourBlur() {
+    setHour((h) => (h === "" ? "09" : pad(Math.min(23, parseInt(h, 10) || 0))));
+  }
+
+  function handleMinuteBlur() {
+    setMinute((m) => (m === "" ? "00" : pad(Math.min(59, parseInt(m, 10) || 0))));
+  }
+
   const ready = year !== null && month !== null && day !== null && viewYear !== null && viewMonth !== null;
   const displayDate = ready ? `${pad(day)}/${pad(month + 1)}/${year}` : "dd/mm/yyyy";
   const isoDate = ready ? `${year}-${pad(month + 1)}-${pad(day)}` : "";
@@ -76,9 +107,6 @@ export function DeadlineDateFields() {
     ...Array(firstWeekday).fill(null),
     ...Array.from({ length: daysInMonth }, (_, i) => i + 1),
   ];
-
-  const hours = Array.from({ length: 24 }, (_, i) => pad(i));
-  const minutes = Array.from({ length: 12 }, (_, i) => pad(i * 5));
 
   return (
     <div style={{ display: "flex", gap: 10 }}>
@@ -148,21 +176,30 @@ export function DeadlineDateFields() {
         )}
       </div>
 
-      <select value={hour} onChange={(e) => setHour(e.target.value)} ref={hourRef} style={{ ...inputStyle, flex: 1 }}>
-        {hours.map((h) => (
-          <option key={h} value={h}>
-            {h}
-          </option>
-        ))}
-      </select>
-      <select value={minute} onChange={(e) => setMinute(e.target.value)} style={{ ...inputStyle, flex: 1 }}>
-        {minutes.map((m) => (
-          <option key={m} value={m}>
-            {m}
-          </option>
-        ))}
-      </select>
-      <input type="hidden" name="dueTime" value={`${hour}:${minute}`} />
+      <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+        <input
+          ref={hourRef}
+          value={hour}
+          onChange={(e) => handleHourChange(e.target.value)}
+          onBlur={handleHourBlur}
+          onFocus={(e) => e.target.select()}
+          inputMode="numeric"
+          placeholder="HH"
+          style={{ ...inputStyle, width: 48, textAlign: "center" }}
+        />
+        <span style={{ color: "#8b93a7" }}>:</span>
+        <input
+          ref={minuteRef}
+          value={minute}
+          onChange={(e) => handleMinuteChange(e.target.value)}
+          onBlur={handleMinuteBlur}
+          onFocus={(e) => e.target.select()}
+          inputMode="numeric"
+          placeholder="MM"
+          style={{ ...inputStyle, width: 48, textAlign: "center" }}
+        />
+      </div>
+      <input type="hidden" name="dueTime" value={`${pad(Number(hour) || 0)}:${pad(Number(minute) || 0)}`} />
     </div>
   );
 }
