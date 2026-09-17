@@ -23,6 +23,7 @@ export default async function DashboardPage({
     googleError?: string;
     added?: string;
     formError?: string;
+    quickAdded?: string;
   }>;
 }) {
   const params = await searchParams;
@@ -80,6 +81,18 @@ export default async function DashboardPage({
         <StatTile value={noteCount} label="Notes" />
       </div>
 
+      <form method="POST" action="/api/quick-add" style={{ display: "flex", gap: 8 }}>
+        <input
+          name="text"
+          placeholder='Quick add: "call therapist tomorrow 5pm", a link, #tag idea, or just a task...'
+          required
+          style={{ ...inputStyle, flex: 1 }}
+        />
+        <button type="submit" style={{ ...buttonLinkStyle, border: "none", cursor: "pointer" }}>
+          Add
+        </button>
+      </form>
+
       {params.googleConnected && <Banner tone="success">Google account connected.</Banner>}
       {params.googleError && (
         <Banner tone="error">Google connection failed: {params.googleError}</Banner>
@@ -87,6 +100,7 @@ export default async function DashboardPage({
       {params.added === "deadline" && <Banner tone="success">Deadline added.</Banner>}
       {params.added === "task" && <Banner tone="success">Task added.</Banner>}
       {params.added === "background" && <Banner tone="success">Background updated.</Banner>}
+      {params.quickAdded && <Banner tone="success">{params.quickAdded}</Banner>}
       {params.formError && <Banner tone="error">{params.formError}</Banner>}
 
       <section style={cardStyle}>

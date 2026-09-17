@@ -23,6 +23,7 @@ enum TaskSourceType {
   SLACK
   SHEET
   MANUAL
+  TELEGRAM
 }
 
 enum StatusState {

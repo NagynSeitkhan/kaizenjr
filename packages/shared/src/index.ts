@@ -1,5 +1,6 @@
 export * from "./crypto";
 export * from "./google";
+export * from "./quickCapture";
 export * from "./telegram";
 export * from "./time";
 

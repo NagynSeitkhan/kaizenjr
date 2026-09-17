@@ -1,5 +1,5 @@
 import { prisma } from "@course-dashboard/db";
-import { sendTelegramMessage } from "@course-dashboard/shared";
+import { sendTelegramMessage, type InlineButton } from "@course-dashboard/shared";
 
 function escapeHtml(s: string): string {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -33,9 +33,14 @@ async function remindWindow(
     const text = `${emoji} <b>${label}:</b> ${escapeHtml(t.title)}${
       t.context ? ` — ${escapeHtml(t.context)}` : ""
     }`;
+    const buttons: InlineButton[] = [
+      { text: "✅ Done", callback_data: `done:task:${t.id}` },
+      { text: "⏰ +1h", callback_data: `snooze1h:task:${t.id}` },
+      { text: "⏳ Tomorrow", callback_data: `snoozeday:task:${t.id}` },
+    ];
 
     try {
-      const messageId = await sendTelegramMessage(text);
+      const messageId = await sendTelegramMessage(text, buttons);
       await prisma.notificationLog.create({
         data: { kind, dedupKey, telegramMessageId: messageId ?? undefined },
       });

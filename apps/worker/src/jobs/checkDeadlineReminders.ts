@@ -1,5 +1,5 @@
 import { prisma } from "@course-dashboard/db";
-import { sendTelegramMessage, sendTelegramPhoto } from "@course-dashboard/shared";
+import { sendTelegramMessage, sendTelegramPhoto, type InlineButton } from "@course-dashboard/shared";
 
 function escapeHtml(s: string): string {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -26,20 +26,25 @@ async function remindWindow(
 
     const courseTag = d.course ? `[${escapeHtml(d.course.name)}] ` : "";
     const text = `${emoji} <b>${label}:</b> ${courseTag}${escapeHtml(d.title)}`;
+    const buttons: InlineButton[] = [
+      { text: "🔕 Mute", callback_data: `mute:deadline:${d.id}` },
+      { text: "⏰ +1h", callback_data: `snooze1h:deadline:${d.id}` },
+      { text: "⏳ Tomorrow", callback_data: `snoozeday:deadline:${d.id}` },
+    ];
 
     try {
       let messageId: string | null;
       if (d.imageUrl) {
         try {
-          messageId = await sendTelegramPhoto(d.imageUrl, text);
+          messageId = await sendTelegramPhoto(d.imageUrl, text, buttons);
         } catch (photoErr) {
           // Image delivery is a bonus, not the point - a phone number in a
           // reminder that never arrives is worse than one without its photo.
           console.error(`[checkDeadlineReminders] photo send failed for "${d.title}", falling back to text:`, photoErr);
-          messageId = await sendTelegramMessage(text);
+          messageId = await sendTelegramMessage(text, buttons);
         }
       } else {
-        messageId = await sendTelegramMessage(text);
+        messageId = await sendTelegramMessage(text, buttons);
       }
 
       await prisma.notificationLog.create({
