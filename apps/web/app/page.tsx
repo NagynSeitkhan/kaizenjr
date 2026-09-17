@@ -33,21 +33,21 @@ export default async function DashboardPage({
     await Promise.all([
       prisma.integrationCredential.findUnique({ where: { provider: "google" } }),
       prisma.deadline.findMany({
-        where: { dueAt: { gte: new Date() } },
+        where: { dueAt: { gte: new Date() }, deletedAt: null },
         include: { course: true },
         orderBy: { dueAt: "asc" },
         take: 20,
       }),
       prisma.course.count(),
       prisma.task.findMany({
-        where: { status: { state: { not: "DONE" } } },
+        where: { status: { state: { not: "DONE" } }, deletedAt: null },
         include: { status: true },
         orderBy: [{ dueAt: { sort: "asc", nulls: "last" } }, { createdAt: "desc" }],
         take: 20,
       }),
-      prisma.task.count({ where: { status: { state: "DONE" } } }),
-      prisma.deadline.count({ where: { dueAt: { gte: new Date(), lte: weekOut } } }),
-      prisma.note.count(),
+      prisma.task.count({ where: { status: { state: "DONE" }, deletedAt: null } }),
+      prisma.deadline.count({ where: { dueAt: { gte: new Date(), lte: weekOut }, deletedAt: null } }),
+      prisma.note.count({ where: { deletedAt: null } }),
       // .catch() here (not a wrapping try/catch) so a failure on just this
       // query can't reject the whole Promise.all and take the real content
       // (deadlines/tasks/notes) down with it.
@@ -63,6 +63,9 @@ export default async function DashboardPage({
         <div style={{ display: "flex", gap: 16, alignItems: "baseline" }}>
           <Link href="/notes" style={{ color: "#8b93a7", fontSize: 14 }}>
             Notes
+          </Link>
+          <Link href="/trash" style={{ color: "#8b93a7", fontSize: 14 }}>
+            Trash
           </Link>
           <form method="POST" action="/api/auth/logout">
             <button
@@ -277,6 +280,11 @@ export default async function DashboardPage({
                           </button>
                         </form>
                       )}
+                      <form method="POST" action={`/api/tasks/${t.id}/delete`}>
+                        <button type="submit" style={toggleButtonStyle(false)}>
+                          Delete
+                        </button>
+                      </form>
                     </div>
                   </li>
                 ))}

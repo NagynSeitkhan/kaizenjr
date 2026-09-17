@@ -6,6 +6,7 @@ import { runDailyDigest } from "./jobs/dailyDigest";
 import { runWeeklyDigest } from "./jobs/weeklyDigest";
 import { checkDeadlineReminders } from "./jobs/checkDeadlineReminders";
 import { checkTaskReminders } from "./jobs/checkTaskReminders";
+import { purgeOldTrash } from "./jobs/purgeOldTrash";
 
 async function runSafely(name: string, fn: () => Promise<void>): Promise<void> {
   try {
@@ -23,6 +24,7 @@ cron.schedule("*/15 * * * *", () => runSafely("checkDeadlineReminders", checkDea
 cron.schedule("*/15 * * * *", () => runSafely("checkTaskReminders", checkTaskReminders));
 cron.schedule("*/15 * * * *", () => runSafely("dailyDigest", runDailyDigest));
 cron.schedule("*/15 * * * *", () => runSafely("weeklyDigest", runWeeklyDigest));
+cron.schedule("0 * * * *", () => runSafely("purgeOldTrash", purgeOldTrash));
 
 // Run once immediately on boot so a fresh deploy doesn't wait for the first tick.
 void runSafely("syncCalendar", syncCalendar);
@@ -31,3 +33,4 @@ void runSafely("checkDeadlineReminders", checkDeadlineReminders);
 void runSafely("checkTaskReminders", checkTaskReminders);
 void runSafely("dailyDigest", runDailyDigest);
 void runSafely("weeklyDigest", runWeeklyDigest);
+void runSafely("purgeOldTrash", purgeOldTrash);

@@ -30,7 +30,7 @@ export async function runWeeklyDigest(): Promise<void> {
 
   const twoWeeksOut = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000);
   const deadlines = await prisma.deadline.findMany({
-    where: { dueAt: { gte: new Date(), lte: twoWeeksOut } },
+    where: { dueAt: { gte: new Date(), lte: twoWeeksOut }, deletedAt: null },
     include: { course: true },
     orderBy: { dueAt: "asc" },
   });

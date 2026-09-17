@@ -5,6 +5,7 @@ import { runDailyDigest } from "./jobs/dailyDigest";
 import { runWeeklyDigest } from "./jobs/weeklyDigest";
 import { checkDeadlineReminders } from "./jobs/checkDeadlineReminders";
 import { checkTaskReminders } from "./jobs/checkTaskReminders";
+import { purgeOldTrash } from "./jobs/purgeOldTrash";
 
 // Single-invocation entrypoint for a scheduler that isn't a long-running
 // process (e.g. GitHub Actions `schedule` cron) - runs every job once, then
@@ -19,6 +20,7 @@ async function main(): Promise<void> {
     ["checkTaskReminders", checkTaskReminders],
     ["runDailyDigest", runDailyDigest],
     ["runWeeklyDigest", runWeeklyDigest],
+    ["purgeOldTrash", purgeOldTrash],
   ];
 
   for (const [name, fn] of jobs) {

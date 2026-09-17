@@ -15,7 +15,7 @@ async function remindWindow(
   const windowEnd = new Date(now.getTime() + windowHours * 60 * 60 * 1000);
 
   const deadlines = await prisma.deadline.findMany({
-    where: { dueAt: { gte: now, lte: windowEnd }, notifyEnabled: true },
+    where: { dueAt: { gte: now, lte: windowEnd }, notifyEnabled: true, deletedAt: null },
     include: { course: true },
   });
 

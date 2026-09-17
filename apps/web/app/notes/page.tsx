@@ -33,12 +33,14 @@ export default async function NotesPage({
 
   const [categoryRows, notes] = await Promise.all([
     prisma.note.findMany({
+      where: { deletedAt: null },
       distinct: ["category"],
       select: { category: true },
       orderBy: { category: "asc" },
     }),
     prisma.note.findMany({
       where: {
+        deletedAt: null,
         category: activeCategory ?? undefined,
         ...(query
           ? {

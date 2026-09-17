@@ -4,6 +4,6 @@ import { redirectAfterAction } from "@/lib/redirect";
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  await prisma.note.update({ where: { id }, data: { deletedAt: new Date() } });
-  return redirectAfterAction(new URL("/notes?deleted=1", req.url));
+  await prisma.note.update({ where: { id }, data: { deletedAt: null } });
+  return redirectAfterAction(new URL("/trash?restored=1", req.url));
 }

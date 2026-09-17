@@ -22,6 +22,7 @@ async function remindWindow(
     where: {
       dueAt: { gte: now, lte: windowEnd },
       status: { state: { not: "DONE" } },
+      deletedAt: null,
     },
   });
 
