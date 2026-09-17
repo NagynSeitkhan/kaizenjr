@@ -24,32 +24,47 @@ interface TelegramUpdate {
   callback_query?: TelegramCallbackQuery;
 }
 
+// A failure to send the *confirmation* reply must never turn into a 500 -
+// Telegram would then retry the whole update, and Note has no idempotency
+// key (unlike Task/Deadline, which dedupe on the Telegram message_id), so a
+// retried "successful creation, failed reply" would create a duplicate note.
+async function safeSend(text: string): Promise<void> {
+  try {
+    await sendTelegramMessage(text);
+  } catch (err) {
+    console.error("[telegram webhook] failed to send reply:", err);
+  }
+}
+
 async function handleMessage(message: TelegramMessage): Promise<void> {
   const text = (message.text ?? message.caption ?? "").trim();
   if (!text) {
-    await sendTelegramMessage("I can only read text right now — try typing, or forward a text message.");
+    await safeSend("I can only read text right now — try typing, or forward a text message.");
     return;
   }
 
+  let replyText: string;
   try {
     const result = await processQuickCapture(text, {
       sourceType: "TELEGRAM",
       sourceRef: String(message.message_id),
     });
     const icon = result.kind === "note" ? "📝" : result.kind === "deadline" ? "⏰" : "✅";
-    await sendTelegramMessage(`${icon} ${result.summary}`);
+    replyText = `${icon} ${result.summary}`;
   } catch (err) {
     // A duplicate message_id (Telegram retried an update it thinks failed)
     // hits the Deadline/Task unique constraint - that's a harmless replay,
     // not a real error, so it gets a quieter reply instead of Telegram
     // seeing this endpoint "fail" and retrying again.
     if (err instanceof Error && err.message.includes("Unique constraint")) {
-      await sendTelegramMessage("Already saved that one.");
-      return;
+      replyText = "Already saved that one.";
+    } else {
+      console.error("[telegram webhook] processQuickCapture failed:", err);
+      replyText = "Something went wrong saving that — sorry.";
     }
-    console.error("[telegram webhook] processQuickCapture failed:", err);
-    await sendTelegramMessage("Something went wrong saving that — sorry.");
   }
+
+  await safeSend(replyText);
 }
 
 async function snoozeDeadline(id: string, hours: number): Promise<string> {
@@ -106,7 +121,14 @@ async function handleCallbackQuery(cq: TelegramCallbackQuery): Promise<void> {
     toast = "That failed — sorry.";
   }
 
-  await answerCallbackQuery(cq.id, toast);
+  // The action above (mark done, snooze, mute) already succeeded or failed
+  // and logged its own outcome - a failure acknowledging the button press
+  // back to Telegram shouldn't 500 this request and trigger a retry that
+  // re-runs an action that may not be idempotent from the user's view
+  // (e.g. re-snoozing would push the due time out twice).
+  await answerCallbackQuery(cq.id, toast).catch((err) => {
+    console.error("[telegram webhook] answerCallbackQuery failed:", err);
+  });
   if (cq.message) {
     await removeInlineKeyboard(cq.message.chat.id, cq.message.message_id).catch(() => undefined);
   }
