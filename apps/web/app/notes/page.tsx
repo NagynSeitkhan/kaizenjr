@@ -24,6 +24,7 @@ export default async function NotesPage({
     added?: string;
     deleted?: string;
     updated?: string;
+    reminded?: string;
   }>;
 }) {
   const params = await searchParams;
@@ -67,6 +68,7 @@ export default async function NotesPage({
       {params.added && <Banner tone="success">Note added.</Banner>}
       {params.deleted && <Banner tone="success">Note deleted.</Banner>}
       {params.updated && <Banner tone="success">Note updated.</Banner>}
+      {params.reminded && <Banner tone="success">Reminder set — check the dashboard's Upcoming list.</Banner>}
 
       <form
         method="POST"

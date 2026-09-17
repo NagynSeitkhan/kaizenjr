@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { cardStyle, inputStyle, buttonLinkStyle } from "@/lib/ui";
+import { DeadlineDateFields } from "@/components/DeadlineDateFields";
 
 const TRUNCATE_LENGTH = 220;
 
@@ -33,7 +34,7 @@ export function NoteCard({
   showCategory: boolean;
   pinned: boolean;
 }) {
-  const [mode, setMode] = useState<"view" | "edit">("view");
+  const [mode, setMode] = useState<"view" | "edit" | "remind">("view");
   const [expanded, setExpanded] = useState(false);
   const [copied, setCopied] = useState(false);
 
@@ -51,14 +52,18 @@ export function NoteCard({
     }
   }
 
+  function toggleMode(target: "edit" | "remind") {
+    setMode((m) => (m === target ? "view" : target));
+  }
+
   return (
     <li style={{ ...cardStyle, display: "flex", flexDirection: "column", gap: 6 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "#8b93a7" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "#8b93a7", flexWrap: "wrap", gap: 8 }}>
         <span>
           {pinned && "📌 "}
           {showCategory && <strong>{category}</strong>} · {dateLabel}
         </span>
-        <div style={{ display: "flex", gap: 12 }}>
+        <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
           <button type="button" onClick={handleCopy} style={linkButtonStyle}>
             {copied ? "Copied!" : "Copy"}
           </button>
@@ -67,7 +72,10 @@ export function NoteCard({
               {pinned ? "Unpin" : "Pin"}
             </button>
           </form>
-          <button type="button" onClick={() => setMode(mode === "edit" ? "view" : "edit")} style={linkButtonStyle}>
+          <button type="button" onClick={() => toggleMode("remind")} style={linkButtonStyle}>
+            {mode === "remind" ? "Cancel" : "Remind"}
+          </button>
+          <button type="button" onClick={() => toggleMode("edit")} style={linkButtonStyle}>
             {mode === "edit" ? "Cancel" : "Edit"}
           </button>
           <form method="POST" action={`/api/notes/${id}/delete`}>
@@ -78,7 +86,7 @@ export function NoteCard({
         </div>
       </div>
 
-      {mode === "view" ? (
+      {mode === "view" && (
         <>
           <p style={{ margin: 0, whiteSpace: "pre-wrap" }}>{linkify(displayText)}</p>
           {isLong && (
@@ -91,7 +99,9 @@ export function NoteCard({
             </button>
           )}
         </>
-      ) : (
+      )}
+
+      {mode === "edit" && (
         <form method="POST" action={`/api/notes/${id}`} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           <input name="category" defaultValue={category} required list="category-options" style={inputStyle} />
           <textarea
@@ -103,6 +113,18 @@ export function NoteCard({
           />
           <button type="submit" style={{ ...buttonLinkStyle, border: "none", cursor: "pointer", alignSelf: "flex-start" }}>
             Save changes
+          </button>
+        </form>
+      )}
+
+      {mode === "remind" && (
+        <form method="POST" action={`/api/notes/${id}/remind`} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <p style={{ margin: 0, fontSize: 13, color: "#8b93a7" }}>
+            Sends this note as a Telegram reminder ~24h and ~2h before the time you pick.
+          </p>
+          <DeadlineDateFields />
+          <button type="submit" style={{ ...buttonLinkStyle, border: "none", cursor: "pointer", alignSelf: "flex-start" }}>
+            Set reminder
           </button>
         </form>
       )}

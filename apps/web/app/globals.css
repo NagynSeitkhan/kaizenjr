@@ -1,3 +1,11 @@
+/* Browsers don't apply the page font to form controls by default - button,
+   input, select, and textarea use the OS UI font instead unless told
+   otherwise. This is why buttons throughout the app (copy/pin/edit/delete
+   on notes, etc.) looked visually inconsistent with everything else. */
+button, input, select, textarea {
+  font-family: inherit;
+}
+
 /* The native file input's button and placeholder text render with the
    browser's default UI font, not the page font - ::file-selector-button
    is a pseudo-element, which inline React styles can't target, so this
