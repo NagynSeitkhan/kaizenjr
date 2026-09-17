@@ -5,6 +5,39 @@ const URL_REGEX = /https?:\/\/[^\s]+/i;
 const HASHTAG_REGEX = /#(\w+)/;
 const ASTANA_UTC_OFFSET_MINUTES = 300; // UTC+5, no DST
 
+// chrono-node has no Kazakh parser, but Kazakh and Russian share enough
+// calendar vocabulary that translating the handful of common relative-date
+// words into Russian first, then running chrono's real Russian parser,
+// covers the everyday cases without hand-rolling date logic.
+const KAZAKH_TO_RUSSIAN: Record<string, string> = {
+  "ертең": "завтра",
+  "ертен": "завтра",
+  "бүгін": "сегодня",
+  "бугін": "сегодня",
+  "қазір": "сейчас",
+  "дүйсенбі": "понедельник",
+  "сейсенбі": "вторник",
+  "сәрсенбі": "среда",
+  "бейсенбі": "четверг",
+  "жұма": "пятница",
+  "сенбі": "суббота",
+  "жексенбі": "воскресенье",
+};
+
+function containsKazakhWord(text: string): boolean {
+  return text.split(/\s+/).some((token) => token.toLowerCase() in KAZAKH_TO_RUSSIAN);
+}
+
+function translateKazakh(text: string): string {
+  // Word-splitting instead of a \bword\b regex: JS's \b is ASCII-only and
+  // silently fails to match word boundaries around Cyrillic text, which
+  // made the substitution below a no-op against real Kazakh input.
+  return text
+    .split(/(\s+)/)
+    .map((token) => KAZAKH_TO_RUSSIAN[token.toLowerCase()] ?? token)
+    .join("");
+}
+
 export interface QuickCaptureResult {
   kind: "note" | "deadline" | "task";
   summary: string;
@@ -24,10 +57,33 @@ function extractHashtag(text: string): { tag: string; remaining: string } | null
 }
 
 function extractDate(text: string): { date: Date; remaining: string } | null {
-  const results = chrono.parse(text, { instant: new Date(), timezone: ASTANA_UTC_OFFSET_MINUTES });
+  const ref = { instant: new Date(), timezone: ASTANA_UTC_OFFSET_MINUTES };
+  let source = text;
+  let results: chrono.ParsedResult[];
+
+  if (containsKazakhWord(text)) {
+    // Commit to the Russian path directly rather than trying English first:
+    // chrono's English parser recognizes a bare "17:00" as a standalone
+    // time even with no English date words around it, which would
+    // otherwise "succeed" on a Kazakh message and silently ignore the
+    // "ертен" (tomorrow) that appears elsewhere in the same message.
+    source = translateKazakh(text);
+    results = chrono.ru.parse(source, ref);
+  } else {
+    // English first for everything else: chrono's Russian parser has the
+    // mirror-image problem, grabbing a bare "5pm" out of an all-English
+    // sentence (missing "tomorrow" entirely) rather than returning no
+    // match. The English parser correctly returns nothing for Russian
+    // text, so trying it first here has no equivalent false-positive risk.
+    results = chrono.parse(text, ref);
+    if (results.length === 0) {
+      results = chrono.ru.parse(text, ref);
+    }
+  }
+
   if (results.length === 0) return null;
   const r = results[0];
-  const remaining = (text.slice(0, r.index) + text.slice(r.index + r.text.length)).trim();
+  const remaining = (source.slice(0, r.index) + source.slice(r.index + r.text.length)).trim();
   return { date: r.start.date(), remaining };
 }
 
