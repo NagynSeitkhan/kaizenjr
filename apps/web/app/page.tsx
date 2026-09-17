@@ -46,7 +46,10 @@ export default async function DashboardPage({
       prisma.task.count({ where: { status: { state: "DONE" } } }),
       prisma.deadline.count({ where: { dueAt: { gte: new Date(), lte: weekOut } } }),
       prisma.note.count(),
-      prisma.setting.findUnique({ where: { key: "backgroundUrl" } }),
+      // .catch() here (not a wrapping try/catch) so a failure on just this
+      // query can't reject the whole Promise.all and take the real content
+      // (deadlines/tasks/notes) down with it.
+      prisma.setting.findUnique({ where: { key: "backgroundUrl" } }).catch(() => null),
     ]);
 
   const googleConnected = Boolean(googleCred?.refreshTokenEnc);
