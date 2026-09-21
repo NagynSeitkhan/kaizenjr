@@ -170,6 +170,10 @@ export default async function DashboardPage({
               <input name="title" placeholder="Title (e.g. CSCI 152 Assignment 3)" required style={inputStyle} />
               <DeadlineDateFields />
               <input name="description" placeholder="Notes (optional)" style={inputStyle} />
+              <label style={{ fontSize: 13, color: "#8b93a7", display: "flex", gap: 6, alignItems: "center" }}>
+                <input name="urgent" type="checkbox" />
+                🚨 Urgent — keep pinging on Telegram until I respond
+              </label>
               <label style={{ fontSize: 13, color: "#8b93a7" }}>
                 Attach a photo (optional) — sent along with the Telegram reminder
                 <input name="image" type="file" accept="image/*" style={{ display: "block", marginTop: 6 }} />
@@ -195,6 +199,7 @@ export default async function DashboardPage({
                   <li key={d.id} style={{ ...cardStyle, display: "flex", flexDirection: "column", gap: 8 }}>
                     <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
                       <span>
+                        {d.urgent && "🚨 "}
                         {d.course ? <strong>[{d.course.name}] </strong> : null}
                         {d.title}
                       </span>
@@ -206,6 +211,11 @@ export default async function DashboardPage({
                       <form method="POST" action={`/api/deadlines/${d.id}/toggle-notify`}>
                         <button type="submit" style={toggleButtonStyle(d.notifyEnabled)}>
                           {d.notifyEnabled ? "🔔 Notify: on" : "🔕 Notify: off"}
+                        </button>
+                      </form>
+                      <form method="POST" action={`/api/deadlines/${d.id}/toggle-urgent`}>
+                        <button type="submit" style={toggleButtonStyle(d.urgent)}>
+                          {d.urgent ? "🚨 Urgent: on" : "Urgent: off"}
                         </button>
                       </form>
                       <form method="POST" action={`/api/deadlines/${d.id}/snooze`}>
@@ -237,6 +247,10 @@ export default async function DashboardPage({
               <input name="title" placeholder="Task title" required style={inputStyle} />
               <input name="context" placeholder="Notes (optional)" style={inputStyle} />
               <TaskDueDateToggle />
+              <label style={{ fontSize: 13, color: "#8b93a7", display: "flex", gap: 6, alignItems: "center" }}>
+                <input name="urgent" type="checkbox" />
+                🚨 Urgent — keep pinging on Telegram until I respond
+              </label>
               <button
                 type="submit"
                 style={{ ...buttonLinkStyle, border: "none", cursor: "pointer", alignSelf: "flex-start" }}
@@ -258,6 +272,7 @@ export default async function DashboardPage({
                   <li key={t.id} style={{ ...cardStyle, display: "flex", flexDirection: "column", gap: 8 }}>
                     <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
                       <span>
+                        {t.urgent && "🚨 "}
                         {t.title}
                         {t.context && <span style={{ color: "#8b93a7" }}> — {t.context}</span>}
                       </span>
@@ -277,6 +292,13 @@ export default async function DashboardPage({
                         <form method="POST" action={`/api/tasks/${t.id}/snooze`}>
                           <button type="submit" style={toggleButtonStyle(false)}>
                             +1 day
+                          </button>
+                        </form>
+                      )}
+                      {t.dueAt && (
+                        <form method="POST" action={`/api/tasks/${t.id}/toggle-urgent`}>
+                          <button type="submit" style={toggleButtonStyle(t.urgent)}>
+                            {t.urgent ? "🚨 Urgent: on" : "Urgent: off"}
                           </button>
                         </form>
                       )}

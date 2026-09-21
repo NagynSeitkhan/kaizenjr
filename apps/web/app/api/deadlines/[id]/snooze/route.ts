@@ -12,8 +12,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       // fire again relative to the new due time - the dedup key is per
       // deadline+kind, not per specific due date, so without this a
       // snoozed deadline would silently never remind again.
-      prisma.notificationLog.deleteMany({ where: { deadlineId: id, kind: { in: ["T24H", "T2H"] } } }),
-      prisma.deadline.update({ where: { id }, data: { dueAt: newDueAt } }),
+      prisma.notificationLog.deleteMany({ where: { deadlineId: id, kind: { in: ["T24H", "T2H", "T10M", "T0"] } } }),
+      prisma.deadline.update({ where: { id }, data: { dueAt: newDueAt, nagAcknowledgedAt: null } }),
     ]);
   }
   return redirectAfterAction(new URL("/", req.url));

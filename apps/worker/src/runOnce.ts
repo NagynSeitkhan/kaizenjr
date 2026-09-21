@@ -5,6 +5,7 @@ import { runDailyDigest } from "./jobs/dailyDigest";
 import { runWeeklyDigest } from "./jobs/weeklyDigest";
 import { checkDeadlineReminders } from "./jobs/checkDeadlineReminders";
 import { checkTaskReminders } from "./jobs/checkTaskReminders";
+import { sendUrgentNags } from "./jobs/urgentNags";
 import { purgeOldTrash } from "./jobs/purgeOldTrash";
 
 // Single-invocation entrypoint for a scheduler that isn't a long-running
@@ -18,6 +19,7 @@ async function main(): Promise<void> {
     ["syncTasksSheet", syncTasksSheet],
     ["checkDeadlineReminders", checkDeadlineReminders],
     ["checkTaskReminders", checkTaskReminders],
+    ["sendUrgentNags", sendUrgentNags],
     ["runDailyDigest", runDailyDigest],
     ["runWeeklyDigest", runWeeklyDigest],
     ["purgeOldTrash", purgeOldTrash],

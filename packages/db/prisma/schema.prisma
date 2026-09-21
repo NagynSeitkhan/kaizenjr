@@ -37,6 +37,9 @@ enum NotificationKind {
   DIGEST
   T24H
   T2H
+  T10M
+  T0
+  NAG
   MANUAL
 }
 
@@ -67,6 +70,8 @@ model Deadline {
   url           String?
   imageUrl      String?
   notifyEnabled Boolean           @default(true)
+  urgent        Boolean           @default(false)
+  nagAcknowledgedAt DateTime?
   deletedAt     DateTime?
   createdAt     DateTime          @default(now())
   updatedAt     DateTime          @updatedAt
@@ -84,6 +89,8 @@ model Task {
   channel     String?
   context     String?
   dueAt       DateTime?
+  urgent      Boolean         @default(false)
+  nagAcknowledgedAt DateTime?
   deletedAt   DateTime?
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt

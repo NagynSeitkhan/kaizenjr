@@ -73,9 +73,11 @@ async function snoozeDeadline(id: string, hours: number): Promise<string> {
   const newDueAt = new Date(deadline.dueAt.getTime() + hours * 60 * 60 * 1000);
   await prisma.$transaction([
     prisma.notificationLog.deleteMany({
-      where: { dedupKey: { in: [`${id}:T24H`, `${id}:T2H`] } },
+      where: { dedupKey: { in: [`${id}:T24H`, `${id}:T2H`, `${id}:T10M`, `${id}:T0`] } },
     }),
-    prisma.deadline.update({ where: { id }, data: { dueAt: newDueAt } }),
+    // nagAcknowledgedAt resets to null so, if this is an "urgent" deadline,
+    // nagging can resume once the new due time arrives and passes.
+    prisma.deadline.update({ where: { id }, data: { dueAt: newDueAt, nagAcknowledgedAt: null } }),
   ]);
   return `Snoozed ${hours}h.`;
 }
@@ -86,9 +88,9 @@ async function snoozeTask(id: string, hours: number): Promise<string> {
   const newDueAt = new Date(task.dueAt.getTime() + hours * 60 * 60 * 1000);
   await prisma.$transaction([
     prisma.notificationLog.deleteMany({
-      where: { dedupKey: { in: [`task:${id}:T24H`, `task:${id}:T2H`] } },
+      where: { dedupKey: { in: [`task:${id}:T24H`, `task:${id}:T2H`, `task:${id}:T10M`, `task:${id}:T0`] } },
     }),
-    prisma.task.update({ where: { id }, data: { dueAt: newDueAt } }),
+    prisma.task.update({ where: { id }, data: { dueAt: newDueAt, nagAcknowledgedAt: null } }),
   ]);
   return `Snoozed ${hours}h.`;
 }
@@ -113,6 +115,12 @@ async function handleCallbackQuery(cq: TelegramCallbackQuery): Promise<void> {
       toast = await snoozeTask(id, 1);
     } else if (action === "snoozeday" && type === "task") {
       toast = await snoozeTask(id, 24);
+    } else if (action === "accept" && type === "deadline") {
+      await prisma.deadline.update({ where: { id }, data: { nagAcknowledgedAt: new Date() } });
+      toast = "OK, I'll stop pinging about this one.";
+    } else if (action === "accept" && type === "task") {
+      await prisma.task.update({ where: { id }, data: { nagAcknowledgedAt: new Date() } });
+      toast = "OK, I'll stop pinging about this one.";
     } else {
       toast = "Unknown action.";
     }

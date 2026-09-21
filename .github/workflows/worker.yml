@@ -4,8 +4,11 @@ on:
   schedule:
     # GitHub's scheduler is best-effort and can lag a few minutes under load;
     # that's fine here since dedup (NotificationLog.dedupKey) makes every job
-    # safe to run late or to overlap with the next tick.
-    - cron: "*/15 * * * *"
+    # safe to run late or to overlap with the next tick. 10 minutes (rather
+    # than 15) is needed so the T10M/T0 deadline/task reminder windows and
+    # the urgent-item nag cadence are never skipped entirely - this repo is
+    # public, so GitHub Actions minutes are free/unlimited either way.
+    - cron: "*/10 * * * *"
   workflow_dispatch: {}
 
 jobs:

@@ -10,6 +10,7 @@ export async function POST(req: NextRequest) {
   const dueDateRaw = String(formData.get("dueDate") ?? "");
   const dueTimeRaw = String(formData.get("dueTime") ?? "");
   const description = String(formData.get("description") ?? "").trim();
+  const urgent = formData.get("urgent") === "on";
   const image = formData.get("image");
 
   if (!title || !dueDateRaw || !dueTimeRaw) {
@@ -38,6 +39,7 @@ export async function POST(req: NextRequest) {
         source: "MANUAL",
         externalId: crypto.randomUUID(),
         imageUrl,
+        urgent,
       },
     });
   } catch (err) {

@@ -7,6 +7,7 @@ export async function POST(req: NextRequest) {
   const formData = await req.formData();
   const title = String(formData.get("title") ?? "").trim();
   const context = String(formData.get("context") ?? "").trim();
+  const urgent = formData.get("urgent") === "on";
   const dueDateRaw = String(formData.get("dueDate") ?? "");
   const dueTimeRaw = String(formData.get("dueTime") ?? "");
 
@@ -31,6 +32,7 @@ export async function POST(req: NextRequest) {
         title,
         context: context || null,
         dueAt,
+        urgent,
         sourceType: "MANUAL",
         sourceRef: crypto.randomUUID(),
         mentionedAt: new Date(),

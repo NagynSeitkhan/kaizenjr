@@ -9,9 +9,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const newDueAt = new Date(task.dueAt.getTime() + 24 * 60 * 60 * 1000);
     await prisma.$transaction([
       prisma.notificationLog.deleteMany({
-        where: { dedupKey: { in: [`task:${id}:T24H`, `task:${id}:T2H`] } },
+        where: { dedupKey: { in: [`task:${id}:T24H`, `task:${id}:T2H`, `task:${id}:T10M`, `task:${id}:T0`] } },
       }),
-      prisma.task.update({ where: { id }, data: { dueAt: newDueAt } }),
+      prisma.task.update({ where: { id }, data: { dueAt: newDueAt, nagAcknowledgedAt: null } }),
     ]);
   }
   return redirectAfterAction(new URL("/", req.url));
