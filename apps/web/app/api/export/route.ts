@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@course-dashboard/db";
 
+export const dynamic = "force-dynamic";
+
 // Protected by middleware like every other non-public route (session cookie
 // required). Deliberately excludes IntegrationCredential (encrypted OAuth/
 // session tokens) and NotificationLog (internal dedup bookkeeping, not user
