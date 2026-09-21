@@ -7,6 +7,9 @@ const inter = Inter({ subsets: ["latin"], display: "swap" });
 
 export const metadata = {
   title: "Course Dashboard",
+  icons: {
+    icon: [{ url: "/favicon.gif", type: "image/gif" }],
+  },
 };
 
 export default async function RootLayout({ children }: { children: ReactNode }) {
