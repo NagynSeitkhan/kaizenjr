@@ -16,7 +16,20 @@ export function TaskDueDateToggle() {
         <input type="checkbox" checked={enabled} onChange={(e) => setEnabled(e.target.checked)} />
         Set a due date (adds Telegram reminders)
       </label>
-      {enabled && <DeadlineDateFields />}
+      {enabled && (
+        <>
+          <DeadlineDateFields />
+          <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: "#8b93a7" }}>
+            Repeats
+            <select name="recurrence" defaultValue="NONE" style={{ width: "auto" }}>
+              <option value="NONE">Never</option>
+              <option value="DAILY">Daily</option>
+              <option value="WEEKLY">Weekly</option>
+              <option value="MONTHLY">Monthly</option>
+            </select>
+          </label>
+        </>
+      )}
     </div>
   );
 }

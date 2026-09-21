@@ -7,6 +7,7 @@ import { runWeeklyDigest } from "./jobs/weeklyDigest";
 import { checkDeadlineReminders } from "./jobs/checkDeadlineReminders";
 import { checkTaskReminders } from "./jobs/checkTaskReminders";
 import { sendUrgentNags } from "./jobs/urgentNags";
+import { advanceRecurringDeadlines } from "./jobs/advanceRecurring";
 import { purgeOldTrash } from "./jobs/purgeOldTrash";
 
 async function runSafely(name: string, fn: () => Promise<void>): Promise<void> {
@@ -24,6 +25,7 @@ cron.schedule("*/45 * * * *", () => runSafely("syncTasksSheet", syncTasksSheet))
 cron.schedule("*/15 * * * *", () => runSafely("checkDeadlineReminders", checkDeadlineReminders));
 cron.schedule("*/15 * * * *", () => runSafely("checkTaskReminders", checkTaskReminders));
 cron.schedule("*/10 * * * *", () => runSafely("sendUrgentNags", sendUrgentNags));
+cron.schedule("*/10 * * * *", () => runSafely("advanceRecurringDeadlines", advanceRecurringDeadlines));
 cron.schedule("*/15 * * * *", () => runSafely("dailyDigest", runDailyDigest));
 cron.schedule("*/15 * * * *", () => runSafely("weeklyDigest", runWeeklyDigest));
 cron.schedule("0 * * * *", () => runSafely("purgeOldTrash", purgeOldTrash));
@@ -34,6 +36,7 @@ void runSafely("syncTasksSheet", syncTasksSheet);
 void runSafely("checkDeadlineReminders", checkDeadlineReminders);
 void runSafely("checkTaskReminders", checkTaskReminders);
 void runSafely("sendUrgentNags", sendUrgentNags);
+void runSafely("advanceRecurringDeadlines", advanceRecurringDeadlines);
 void runSafely("dailyDigest", runDailyDigest);
 void runSafely("weeklyDigest", runWeeklyDigest);
 void runSafely("purgeOldTrash", purgeOldTrash);

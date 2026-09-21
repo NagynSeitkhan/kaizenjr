@@ -11,6 +11,12 @@ export async function POST(req: NextRequest) {
   const dueTimeRaw = String(formData.get("dueTime") ?? "");
   const description = String(formData.get("description") ?? "").trim();
   const urgent = formData.get("urgent") === "on";
+  const recurrenceRaw = String(formData.get("recurrence") ?? "NONE");
+  const recurrence = (["DAILY", "WEEKLY", "MONTHLY"].includes(recurrenceRaw) ? recurrenceRaw : "NONE") as
+    | "NONE"
+    | "DAILY"
+    | "WEEKLY"
+    | "MONTHLY";
   const image = formData.get("image");
 
   if (!title || !dueDateRaw || !dueTimeRaw) {
@@ -40,6 +46,7 @@ export async function POST(req: NextRequest) {
         externalId: crypto.randomUUID(),
         imageUrl,
         urgent,
+        recurrence,
       },
     });
   } catch (err) {

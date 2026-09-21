@@ -24,26 +24,39 @@ export default async function DashboardPage({
     added?: string;
     formError?: string;
     quickAdded?: string;
+    q?: string;
   }>;
 }) {
   const params = await searchParams;
   const weekOut = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+  const query = params.q?.trim() || null;
+
+  // A search widens scope to everything matching the title (past deadlines,
+  // completed tasks included) instead of just what's currently upcoming/open
+  // - otherwise something you're trying to find because it's already done or
+  // overdue would be invisible exactly when you're looking for it.
+  const deadlineWhere = query
+    ? { deletedAt: null, title: { contains: query, mode: "insensitive" as const } }
+    : { dueAt: { gte: new Date() }, deletedAt: null };
+  const taskWhere = query
+    ? { deletedAt: null, title: { contains: query, mode: "insensitive" as const } }
+    : { status: { state: { not: "DONE" as const } }, deletedAt: null };
 
   const [googleCred, deadlines, courses, openTasks, doneCount, weekCount, noteCount, backgroundSetting] =
     await Promise.all([
       prisma.integrationCredential.findUnique({ where: { provider: "google" } }),
       prisma.deadline.findMany({
-        where: { dueAt: { gte: new Date() }, deletedAt: null },
+        where: deadlineWhere,
         include: { course: true },
         orderBy: { dueAt: "asc" },
-        take: 20,
+        take: 30,
       }),
       prisma.course.count(),
       prisma.task.findMany({
-        where: { status: { state: { not: "DONE" } }, deletedAt: null },
+        where: taskWhere,
         include: { status: true },
         orderBy: [{ dueAt: { sort: "asc", nulls: "last" } }, { createdAt: "desc" }],
-        take: 20,
+        take: 30,
       }),
       prisma.task.count({ where: { status: { state: "DONE" }, deletedAt: null } }),
       prisma.deadline.count({ where: { dueAt: { gte: new Date(), lte: weekOut }, deletedAt: null } }),
@@ -67,6 +80,9 @@ export default async function DashboardPage({
           <Link href="/trash" style={{ color: "#8b93a7", fontSize: 14 }}>
             Trash
           </Link>
+          <a href="/api/export" style={{ color: "#8b93a7", fontSize: 14 }}>
+            Export
+          </a>
           <form method="POST" action="/api/auth/logout">
             <button
               type="submit"
@@ -94,6 +110,18 @@ export default async function DashboardPage({
         <button type="submit" style={{ ...buttonLinkStyle, border: "none", cursor: "pointer" }}>
           Add
         </button>
+      </form>
+
+      <form method="GET" action="/" style={{ display: "flex", gap: 8 }}>
+        <input name="q" placeholder="Search tasks & deadlines..." defaultValue={query ?? ""} style={{ ...inputStyle, flex: 1 }} />
+        <button type="submit" style={{ ...buttonLinkStyle, border: "none", cursor: "pointer" }}>
+          Search
+        </button>
+        {query && (
+          <Link href="/" style={toggleButtonStyle(false)}>
+            Clear
+          </Link>
+        )}
       </form>
 
       {params.googleConnected && <Banner tone="success">Google account connected.</Banner>}
@@ -174,6 +202,15 @@ export default async function DashboardPage({
                 <input name="urgent" type="checkbox" />
                 🚨 Urgent — keep pinging on Telegram until I respond
               </label>
+              <label style={{ fontSize: 13, color: "#8b93a7", display: "flex", gap: 6, alignItems: "center" }}>
+                Repeats
+                <select name="recurrence" defaultValue="NONE" style={{ ...inputStyle, width: "auto" }}>
+                  <option value="NONE">Never</option>
+                  <option value="DAILY">Daily</option>
+                  <option value="WEEKLY">Weekly</option>
+                  <option value="MONTHLY">Monthly</option>
+                </select>
+              </label>
               <label style={{ fontSize: 13, color: "#8b93a7" }}>
                 Attach a photo (optional) — sent along with the Telegram reminder
                 <input name="image" type="file" accept="image/*" style={{ display: "block", marginTop: 6 }} />
@@ -189,10 +226,11 @@ export default async function DashboardPage({
 
           <section>
             <h2 style={sectionHeading}>
-              Upcoming ({deadlines.length}) · {courses} courses tracked
+              {query ? `Deadlines matching "${query}"` : "Upcoming"} ({deadlines.length})
+              {!query && ` · ${courses} courses tracked`}
             </h2>
             {deadlines.length === 0 ? (
-              <p style={{ color: "#8b93a7" }}>Nothing upcoming yet.</p>
+              <p style={{ color: "#8b93a7" }}>{query ? "No matches." : "Nothing upcoming yet."}</p>
             ) : (
               <ul style={listStyle}>
                 {deadlines.map((d) => (
@@ -200,6 +238,7 @@ export default async function DashboardPage({
                     <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
                       <span>
                         {d.urgent && "🚨 "}
+                        {d.recurrence !== "NONE" && "🔁 "}
                         {d.course ? <strong>[{d.course.name}] </strong> : null}
                         {d.title}
                       </span>
@@ -262,10 +301,11 @@ export default async function DashboardPage({
 
           <section>
             <h2 style={sectionHeading}>
-              Open tasks ({openTasks.length}) · {doneCount} done
+              {query ? `Tasks matching "${query}"` : "Open tasks"} ({openTasks.length})
+              {!query && ` · ${doneCount} done`}
             </h2>
             {openTasks.length === 0 ? (
-              <p style={{ color: "#8b93a7" }}>Nothing pending.</p>
+              <p style={{ color: "#8b93a7" }}>{query ? "No matches." : "Nothing pending."}</p>
             ) : (
               <ul style={listStyle}>
                 {openTasks.map((t) => (
@@ -273,6 +313,7 @@ export default async function DashboardPage({
                     <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
                       <span>
                         {t.urgent && "🚨 "}
+                        {t.recurrence !== "NONE" && "🔁 "}
                         {t.title}
                         {t.context && <span style={{ color: "#8b93a7" }}> — {t.context}</span>}
                       </span>

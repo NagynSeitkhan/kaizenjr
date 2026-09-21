@@ -5,6 +5,10 @@ import {
   sendTelegramMessage,
   answerCallbackQuery,
   removeInlineKeyboard,
+  completeTaskAndAdvance,
+  formatUserDateTime,
+  parseUserLocalDateTime,
+  USER_TIMEZONE,
 } from "@course-dashboard/shared";
 
 interface TelegramMessage {
@@ -24,6 +28,122 @@ interface TelegramUpdate {
   callback_query?: TelegramCallbackQuery;
 }
 
+function escapeHtml(s: string): string {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+// Matches a bare word command ("today"), a slash command ("/today"), and a
+// slash command with a bot-username suffix Telegram adds in group chats
+// ("/today@YourBotName") - all should trigger the same on-demand agenda.
+function matchesCommand(text: string, ...names: string[]): boolean {
+  const word = text.trim().toLowerCase().replace(/^\//, "").split(/[@\s]/)[0];
+  return names.includes(word);
+}
+
+function endOfTodayAstana(): Date {
+  const todayStr = new Intl.DateTimeFormat("en-CA", { timeZone: USER_TIMEZONE }).format(new Date());
+  return parseUserLocalDateTime(`${todayStr}T23:59`) ?? new Date();
+}
+
+async function buildTodayAgenda(): Promise<string> {
+  const now = new Date();
+  const endOfToday = endOfTodayAstana();
+
+  const [deadlines, tasks] = await Promise.all([
+    prisma.deadline.findMany({
+      where: { dueAt: { lte: endOfToday }, deletedAt: null },
+      include: { course: true },
+      orderBy: { dueAt: "asc" },
+    }),
+    prisma.task.findMany({
+      where: { dueAt: { lte: endOfToday }, deletedAt: null, status: { state: { not: "DONE" } } },
+      orderBy: { dueAt: "asc" },
+    }),
+  ]);
+
+  const lines: string[] = ["<b>Today</b>", "", `<b>Deadlines — ${deadlines.length}</b>`];
+  if (deadlines.length === 0) {
+    lines.push("Nothing due today.");
+  } else {
+    for (const d of deadlines) {
+      const courseTag = d.course ? `[${escapeHtml(d.course.name)}] ` : "";
+      const overdue = d.dueAt < now ? " ⚠️ OVERDUE" : "";
+      lines.push(`• ${courseTag}${escapeHtml(d.title)} — ${formatUserDateTime(d.dueAt)}${overdue}`);
+    }
+  }
+
+  lines.push("", `<b>Tasks — ${tasks.length}</b>`);
+  if (tasks.length === 0) {
+    lines.push("Nothing due today.");
+  } else {
+    for (const t of tasks) {
+      const overdue = t.dueAt && t.dueAt < now ? " ⚠️ OVERDUE" : "";
+      const dueLabel = t.dueAt ? ` — ${formatUserDateTime(t.dueAt)}` : "";
+      lines.push(`• ${escapeHtml(t.title)}${t.context ? ` — ${escapeHtml(t.context)}` : ""}${dueLabel}${overdue}`);
+    }
+  }
+
+  return lines.join("\n");
+}
+
+async function buildWeekAgenda(): Promise<string> {
+  const now = new Date();
+  const weekOut = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+
+  const [deadlines, tasks] = await Promise.all([
+    prisma.deadline.findMany({
+      where: { dueAt: { gte: now, lte: weekOut }, deletedAt: null },
+      include: { course: true },
+      orderBy: { dueAt: "asc" },
+    }),
+    prisma.task.findMany({
+      where: { dueAt: { gte: now, lte: weekOut }, deletedAt: null, status: { state: { not: "DONE" } } },
+      orderBy: { dueAt: "asc" },
+    }),
+  ]);
+
+  const lines: string[] = ["<b>Next 7 days</b>", "", `<b>Deadlines — ${deadlines.length}</b>`];
+  if (deadlines.length === 0) {
+    lines.push("Nothing on the calendar this week.");
+  } else {
+    for (const d of deadlines) {
+      const courseTag = d.course ? `[${escapeHtml(d.course.name)}] ` : "";
+      lines.push(`• ${courseTag}${escapeHtml(d.title)} — ${formatUserDateTime(d.dueAt)}`);
+    }
+  }
+
+  lines.push("", `<b>Tasks with a due date — ${tasks.length}</b>`);
+  if (tasks.length === 0) {
+    lines.push("Nothing due this week.");
+  } else {
+    for (const t of tasks) {
+      lines.push(`• ${escapeHtml(t.title)}${t.context ? ` — ${escapeHtml(t.context)}` : ""} — ${formatUserDateTime(t.dueAt as Date)}`);
+    }
+  }
+
+  return lines.join("\n");
+}
+
+async function buildTaskList(): Promise<string> {
+  const tasks = await prisma.task.findMany({
+    where: { deletedAt: null, status: { state: { not: "DONE" } } },
+    orderBy: [{ dueAt: { sort: "asc", nulls: "last" } }, { createdAt: "desc" }],
+    take: 30,
+  });
+
+  const lines: string[] = [`<b>Open tasks (${tasks.length})</b>`];
+  if (tasks.length === 0) {
+    lines.push("Nothing pending — you're clear.");
+  } else {
+    for (const t of tasks) {
+      const dueLabel = t.dueAt ? ` — ${formatUserDateTime(t.dueAt)}` : "";
+      lines.push(`• ${t.urgent ? "🚨 " : ""}${escapeHtml(t.title)}${t.context ? ` — ${escapeHtml(t.context)}` : ""}${dueLabel}`);
+    }
+  }
+
+  return lines.join("\n");
+}
+
 // A failure to send the *confirmation* reply must never turn into a 500 -
 // Telegram would then retry the whole update, and Note has no idempotency
 // key (unlike Task/Deadline, which dedupe on the Telegram message_id), so a
@@ -40,6 +160,21 @@ async function handleMessage(message: TelegramMessage): Promise<void> {
   const text = (message.text ?? message.caption ?? "").trim();
   if (!text) {
     await safeSend("I can only read text right now — try typing, or forward a text message.");
+    return;
+  }
+
+  // On-demand agenda commands, checked before quick-capture so these exact
+  // words never get saved as a task instead of answered.
+  if (matchesCommand(text, "today")) {
+    await safeSend(await buildTodayAgenda());
+    return;
+  }
+  if (matchesCommand(text, "week")) {
+    await safeSend(await buildWeekAgenda());
+    return;
+  }
+  if (matchesCommand(text, "list", "tasks")) {
+    await safeSend(await buildTaskList());
     return;
   }
 
@@ -102,7 +237,7 @@ async function handleCallbackQuery(cq: TelegramCallbackQuery): Promise<void> {
 
   try {
     if (action === "done" && type === "task") {
-      await prisma.taskStatus.update({ where: { taskId: id }, data: { state: "DONE" } });
+      await completeTaskAndAdvance(id);
       toast = "Marked done ✅";
     } else if (action === "mute" && type === "deadline") {
       await prisma.deadline.update({ where: { id }, data: { notifyEnabled: false } });

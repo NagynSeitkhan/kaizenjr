@@ -43,6 +43,13 @@ enum NotificationKind {
   MANUAL
 }
 
+enum Recurrence {
+  NONE
+  DAILY
+  WEEKLY
+  MONTHLY
+}
+
 model Course {
   id         String     @id @default(cuid())
   name       String
@@ -72,6 +79,7 @@ model Deadline {
   notifyEnabled Boolean           @default(true)
   urgent        Boolean           @default(false)
   nagAcknowledgedAt DateTime?
+  recurrence    Recurrence        @default(NONE)
   deletedAt     DateTime?
   createdAt     DateTime          @default(now())
   updatedAt     DateTime          @updatedAt
@@ -91,6 +99,7 @@ model Task {
   dueAt       DateTime?
   urgent      Boolean         @default(false)
   nagAcknowledgedAt DateTime?
+  recurrence  Recurrence      @default(NONE)
   deletedAt   DateTime?
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt

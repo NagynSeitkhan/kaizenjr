@@ -8,6 +8,12 @@ export async function POST(req: NextRequest) {
   const title = String(formData.get("title") ?? "").trim();
   const context = String(formData.get("context") ?? "").trim();
   const urgent = formData.get("urgent") === "on";
+  const recurrenceRaw = String(formData.get("recurrence") ?? "NONE");
+  const recurrence = (["DAILY", "WEEKLY", "MONTHLY"].includes(recurrenceRaw) ? recurrenceRaw : "NONE") as
+    | "NONE"
+    | "DAILY"
+    | "WEEKLY"
+    | "MONTHLY";
   const dueDateRaw = String(formData.get("dueDate") ?? "");
   const dueTimeRaw = String(formData.get("dueTime") ?? "");
 
@@ -33,6 +39,7 @@ export async function POST(req: NextRequest) {
         context: context || null,
         dueAt,
         urgent,
+        recurrence: dueAt ? recurrence : "NONE",
         sourceType: "MANUAL",
         sourceRef: crypto.randomUUID(),
         mentionedAt: new Date(),
