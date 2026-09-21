@@ -144,6 +144,127 @@ async function buildTaskList(): Promise<string> {
   return lines.join("\n");
 }
 
+async function buildNotesList(categoryQuery: string | null): Promise<string> {
+  const notes = await prisma.note.findMany({
+    where: {
+      deletedAt: null,
+      ...(categoryQuery ? { category: { equals: categoryQuery, mode: "insensitive" } } : {}),
+    },
+    orderBy: [{ pinned: "desc" }, { createdAt: "desc" }],
+    take: 20,
+  });
+
+  const heading = categoryQuery ? `Notes — ${escapeHtml(categoryQuery)}` : "Recent notes";
+  const lines: string[] = [`<b>${heading} (${notes.length})</b>`];
+  if (notes.length === 0) {
+    lines.push(categoryQuery ? `Nothing under "${escapeHtml(categoryQuery)}".` : "No notes yet.");
+  } else {
+    for (const n of notes) {
+      const preview = n.content.length > 100 ? `${n.content.slice(0, 100)}…` : n.content;
+      lines.push(`• ${n.pinned ? "📌 " : ""}[${escapeHtml(n.category)}] ${escapeHtml(preview)}`);
+    }
+  }
+  return lines.join("\n");
+}
+
+const LAST_CAPTURE_SETTING_KEY = "lastQuickCapture";
+const UNDO_WINDOW_MS = 30 * 60 * 1000;
+
+async function recordLastCapture(kind: string, id: string): Promise<void> {
+  const value = JSON.stringify({ kind, id, capturedAt: new Date().toISOString() });
+  await prisma.setting.upsert({
+    where: { key: LAST_CAPTURE_SETTING_KEY },
+    create: { key: LAST_CAPTURE_SETTING_KEY, value },
+    update: { value },
+  });
+}
+
+async function undoLastCapture(): Promise<string> {
+  const setting = await prisma.setting.findUnique({ where: { key: LAST_CAPTURE_SETTING_KEY } });
+  if (!setting) return "Nothing to undo.";
+
+  let parsed: { kind: string; id: string; capturedAt: string };
+  try {
+    parsed = JSON.parse(setting.value);
+  } catch {
+    return "Nothing to undo.";
+  }
+
+  if (Date.now() - new Date(parsed.capturedAt).getTime() > UNDO_WINDOW_MS) {
+    return "That was more than 30 min ago — too old to undo. Delete it from the dashboard/Trash instead.";
+  }
+
+  try {
+    if (parsed.kind === "task") {
+      await prisma.task.update({ where: { id: parsed.id }, data: { deletedAt: new Date() } });
+    } else if (parsed.kind === "deadline") {
+      await prisma.deadline.update({ where: { id: parsed.id }, data: { deletedAt: new Date() } });
+    } else if (parsed.kind === "note") {
+      await prisma.note.update({ where: { id: parsed.id }, data: { deletedAt: new Date() } });
+    } else {
+      return "Nothing to undo.";
+    }
+  } catch {
+    // Already deleted/purged, or the id no longer exists - not an error worth surfacing.
+    return "Already gone.";
+  }
+
+  // One-shot: prevents "undo" typed twice in a row from deleting whatever
+  // was created *between* those two messages instead of doing nothing.
+  await prisma.setting.delete({ where: { key: LAST_CAPTURE_SETTING_KEY } }).catch(() => undefined);
+  return `Undone — that ${parsed.kind} was moved to Trash.`;
+}
+
+// Fuzzy "done <text>" / "snooze <text>" commands, for when the original
+// reminder message (with its buttons) has scrolled out of view. Requires an
+// exact single match on a case-insensitive title substring - on 0 or 2+
+// matches it asks rather than guessing, since silently acting on the wrong
+// item is worse than making you be more specific.
+function matchesFuzzyCommand(text: string, verb: string): string | null {
+  const re = new RegExp(`^${verb}\\s+(.+)`, "i");
+  const match = text.match(re);
+  return match ? match[1].trim() : null;
+}
+
+async function fuzzyDone(query: string): Promise<string> {
+  const tasks = await prisma.task.findMany({
+    where: { deletedAt: null, status: { state: { not: "DONE" } }, title: { contains: query, mode: "insensitive" } },
+  });
+  if (tasks.length === 0) return `No open task matching "${escapeHtml(query)}".`;
+  if (tasks.length > 1) {
+    return `Multiple matches for "${escapeHtml(query)}" — be more specific:\n${tasks
+      .map((t) => `• ${escapeHtml(t.title)}`)
+      .join("\n")}`;
+  }
+  await completeTaskAndAdvance(tasks[0].id);
+  return `✅ Marked done: "${escapeHtml(tasks[0].title)}"`;
+}
+
+async function fuzzySnooze(query: string): Promise<string> {
+  const [tasks, deadlines] = await Promise.all([
+    prisma.task.findMany({
+      where: { deletedAt: null, dueAt: { not: null }, title: { contains: query, mode: "insensitive" } },
+    }),
+    prisma.deadline.findMany({
+      where: { deletedAt: null, title: { contains: query, mode: "insensitive" } },
+    }),
+  ]);
+  const total = tasks.length + deadlines.length;
+  if (total === 0) return `No task or deadline matching "${escapeHtml(query)}".`;
+  if (total > 1) {
+    const names = [...tasks.map((t) => t.title), ...deadlines.map((d) => d.title)];
+    return `Multiple matches for "${escapeHtml(query)}" — be more specific:\n${names
+      .map((n) => `• ${escapeHtml(n)}`)
+      .join("\n")}`;
+  }
+  if (tasks.length === 1) {
+    const toast = await snoozeTask(tasks[0].id, 24);
+    return `⏳ ${escapeHtml(tasks[0].title)} — ${toast}`;
+  }
+  const toast = await snoozeDeadline(deadlines[0].id, 24);
+  return `⏳ ${escapeHtml(deadlines[0].title)} — ${toast}`;
+}
+
 // A failure to send the *confirmation* reply must never turn into a 500 -
 // Telegram would then retry the whole update, and Note has no idempotency
 // key (unlike Task/Deadline, which dedupe on the Telegram message_id), so a
@@ -177,6 +298,29 @@ async function handleMessage(message: TelegramMessage): Promise<void> {
     await safeSend(await buildTaskList());
     return;
   }
+  if (matchesCommand(text, "undo")) {
+    await safeSend(await undoLastCapture());
+    return;
+  }
+  if (matchesCommand(text, "notes")) {
+    await safeSend(await buildNotesList(null));
+    return;
+  }
+  const notesQuery = text.match(/^\/?notes\s+(.+)/i);
+  if (notesQuery) {
+    await safeSend(await buildNotesList(notesQuery[1].trim()));
+    return;
+  }
+  const doneQuery = matchesFuzzyCommand(text, "done");
+  if (doneQuery) {
+    await safeSend(await fuzzyDone(doneQuery));
+    return;
+  }
+  const snoozeQuery = matchesFuzzyCommand(text, "snooze");
+  if (snoozeQuery) {
+    await safeSend(await fuzzySnooze(snoozeQuery));
+    return;
+  }
 
   let replyText: string;
   try {
@@ -184,6 +328,7 @@ async function handleMessage(message: TelegramMessage): Promise<void> {
       sourceType: "TELEGRAM",
       sourceRef: String(message.message_id),
     });
+    await recordLastCapture(result.kind, result.id);
     const icon = result.kind === "note" ? "📝" : result.kind === "deadline" ? "⏰" : "✅";
     replyText = `${icon} ${result.summary}`;
   } catch (err) {

@@ -42,7 +42,7 @@ export default async function DashboardPage({
     ? { deletedAt: null, title: { contains: query, mode: "insensitive" as const } }
     : { status: { state: { not: "DONE" as const } }, deletedAt: null };
 
-  const [googleCred, deadlines, courses, openTasks, doneCount, weekCount, noteCount, backgroundSetting] =
+  const [googleCred, deadlines, courseList, openTasks, doneCount, weekCount, noteCount, backgroundSetting] =
     await Promise.all([
       prisma.integrationCredential.findUnique({ where: { provider: "google" } }),
       prisma.deadline.findMany({
@@ -51,7 +51,7 @@ export default async function DashboardPage({
         orderBy: { dueAt: "asc" },
         take: 30,
       }),
-      prisma.course.count(),
+      prisma.course.findMany({ orderBy: { name: "asc" } }),
       prisma.task.findMany({
         where: taskWhere,
         include: { status: true },
@@ -131,6 +131,7 @@ export default async function DashboardPage({
       {params.added === "deadline" && <Banner tone="success">Deadline added.</Banner>}
       {params.added === "task" && <Banner tone="success">Task added.</Banner>}
       {params.added === "background" && <Banner tone="success">Background updated.</Banner>}
+      {params.added === "course" && <Banner tone="success">Course added.</Banner>}
       {params.quickAdded && <Banner tone="success">{params.quickAdded}</Banner>}
       {params.formError && <Banner tone="error">{params.formError}</Banner>}
 
@@ -185,6 +186,40 @@ export default async function DashboardPage({
         </form>
       </section>
 
+      <section style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        <h2 style={sectionHeading}>Courses</h2>
+        {courseList.length > 0 && (
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            {courseList.map((c) => (
+              <span key={c.id} style={{ ...coursePillStyle, display: "inline-flex", alignItems: "center", gap: 6 }}>
+                <span
+                  style={{
+                    width: 10,
+                    height: 10,
+                    borderRadius: "50%",
+                    background: c.color || "#8b93a7",
+                    display: "inline-block",
+                  }}
+                />
+                {c.name}
+              </span>
+            ))}
+          </div>
+        )}
+        <form
+          method="POST"
+          action="/api/courses"
+          style={{ ...cardStyle, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}
+        >
+          <input name="name" placeholder="Course name (e.g. CSCI 152)" required style={{ ...inputStyle, flex: 1, minWidth: 160 }} />
+          <input name="code" placeholder="Code (optional)" style={{ ...inputStyle, width: 120 }} />
+          <input name="color" type="color" defaultValue="#7ee2a8" style={{ width: 44, height: 36, padding: 2, background: "none", border: "1px solid #2a2f3a", borderRadius: 6 }} />
+          <button type="submit" style={{ ...buttonLinkStyle, border: "none", cursor: "pointer" }}>
+            Add course
+          </button>
+        </form>
+      </section>
+
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(340px, 1fr))", gap: 28 }}>
         <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
           <section style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -197,6 +232,16 @@ export default async function DashboardPage({
             >
               <input name="title" placeholder="Title (e.g. CSCI 152 Assignment 3)" required style={inputStyle} />
               <DeadlineDateFields />
+              {courseList.length > 0 && (
+                <select name="courseId" defaultValue="" style={inputStyle}>
+                  <option value="">No course</option>
+                  {courseList.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+              )}
               <input name="description" placeholder="Notes (optional)" style={inputStyle} />
               <label style={{ fontSize: 13, color: "#8b93a7", display: "flex", gap: 6, alignItems: "center" }}>
                 <input name="urgent" type="checkbox" />
@@ -227,7 +272,7 @@ export default async function DashboardPage({
           <section>
             <h2 style={sectionHeading}>
               {query ? `Deadlines matching "${query}"` : "Upcoming"} ({deadlines.length})
-              {!query && ` · ${courses} courses tracked`}
+              {!query && ` · ${courseList.length} courses tracked`}
             </h2>
             {deadlines.length === 0 ? (
               <p style={{ color: "#8b93a7" }}>{query ? "No matches." : "Nothing upcoming yet."}</p>
@@ -239,6 +284,18 @@ export default async function DashboardPage({
                       <span>
                         {d.urgent && "🚨 "}
                         {d.recurrence !== "NONE" && "🔁 "}
+                        {d.course && (
+                          <span
+                            style={{
+                              display: "inline-block",
+                              width: 8,
+                              height: 8,
+                              borderRadius: "50%",
+                              background: d.course.color || "#8b93a7",
+                              marginRight: 4,
+                            }}
+                          />
+                        )}
                         {d.course ? <strong>[{d.course.name}] </strong> : null}
                         {d.title}
                       </span>
@@ -368,6 +425,14 @@ function StatTile({ value, label }: { value: number; label: string }) {
     </div>
   );
 }
+
+const coursePillStyle: React.CSSProperties = {
+  border: "1px solid #2a2f3a",
+  borderRadius: 999,
+  padding: "4px 10px",
+  fontSize: 12,
+  color: "#c7cbd6",
+};
 
 function toggleButtonStyle(active: boolean): React.CSSProperties {
   return {

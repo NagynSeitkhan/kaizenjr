@@ -28,14 +28,33 @@ export async function runWeeklyDigest(): Promise<void> {
     return;
   }
 
-  const twoWeeksOut = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000);
-  const deadlines = await prisma.deadline.findMany({
-    where: { dueAt: { gte: new Date(), lte: twoWeeksOut }, deletedAt: null },
-    include: { course: true },
-    orderBy: { dueAt: "asc" },
-  });
+  const now = new Date();
+  const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const twoWeeksOut = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000);
 
-  const lines: string[] = ["<b>Week ahead</b>", "", `<b>Next 14 days — ${deadlines.length}</b>`];
+  // "Last week" looks back, unlike every other digest/reminder in this app -
+  // deliberately includes soft-deleted deadlines (a recurring one that
+  // rolled forward still genuinely happened) but only counts tasks by when
+  // their status last changed to DONE, since a task with no due date has no
+  // other timestamp tying it to "this week".
+  const [deadlinesDone, tasksDone, deadlinesAhead] = await Promise.all([
+    prisma.deadline.count({ where: { dueAt: { gte: weekAgo, lte: now } } }),
+    prisma.task.count({ where: { status: { state: "DONE", updatedAt: { gte: weekAgo, lte: now } } } }),
+    prisma.deadline.findMany({
+      where: { dueAt: { gte: now, lte: twoWeeksOut }, deletedAt: null },
+      include: { course: true },
+      orderBy: { dueAt: "asc" },
+    }),
+  ]);
+  const deadlines = deadlinesAhead;
+
+  const lines: string[] = [
+    "<b>Week ahead</b>",
+    "",
+    `<b>Last week</b> — ${tasksDone} task${tasksDone === 1 ? "" : "s"} done, ${deadlinesDone} deadline${deadlinesDone === 1 ? "" : "s"} passed`,
+    "",
+    `<b>Next 14 days — ${deadlines.length}</b>`,
+  ];
   if (deadlines.length === 0) {
     lines.push("Nothing on the horizon.");
   } else {

@@ -41,6 +41,7 @@ function translateKazakh(text: string): string {
 export interface QuickCaptureResult {
   kind: "note" | "deadline" | "task";
   summary: string;
+  id: string;
 }
 
 function extractUrl(text: string): string | null {
@@ -122,21 +123,21 @@ export async function processQuickCapture(
       const title = await fetchLinkTitle(url);
       content = title ? `${title}\n${url}` : content;
     }
-    await prisma.note.create({ data: { category: hashtag.tag, content: content || url || text } });
-    return { kind: "note", summary: `Saved as a note (${hashtag.tag}).` };
+    const note = await prisma.note.create({ data: { category: hashtag.tag, content: content || url || text } });
+    return { kind: "note", summary: `Saved as a note (${hashtag.tag}).`, id: note.id };
   }
 
   if (url) {
     const title = await fetchLinkTitle(url);
     const content = title ? `${title}\n${url}` : text;
-    await prisma.note.create({ data: { category: "Inbox", content } });
-    return { kind: "note", summary: `Saved as a note (Inbox)${title ? `: "${title}"` : ""}.` };
+    const note = await prisma.note.create({ data: { category: "Inbox", content } });
+    return { kind: "note", summary: `Saved as a note (Inbox)${title ? `: "${title}"` : ""}.`, id: note.id };
   }
 
   const parsedDate = extractDate(text);
   if (parsedDate) {
     const title = parsedDate.remaining || text;
-    await prisma.deadline.create({
+    const deadline = await prisma.deadline.create({
       data: {
         title,
         dueAt: parsedDate.date,
@@ -144,7 +145,7 @@ export async function processQuickCapture(
         externalId: `${source.sourceType}:${source.sourceRef}`,
       },
     });
-    return { kind: "deadline", summary: `Saved as a deadline: "${title}".` };
+    return { kind: "deadline", summary: `Saved as a deadline: "${title}".`, id: deadline.id };
   }
 
   const task = await prisma.task.create({
@@ -155,5 +156,5 @@ export async function processQuickCapture(
     },
   });
   await prisma.taskStatus.create({ data: { taskId: task.id, state: "PENDING", source: "quick_capture" } });
-  return { kind: "task", summary: `Saved as a task: "${text}".` };
+  return { kind: "task", summary: `Saved as a task: "${text}".`, id: task.id };
 }

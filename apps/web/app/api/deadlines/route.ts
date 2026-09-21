@@ -17,6 +17,7 @@ export async function POST(req: NextRequest) {
     | "DAILY"
     | "WEEKLY"
     | "MONTHLY";
+  const courseId = String(formData.get("courseId") ?? "").trim();
   const image = formData.get("image");
 
   if (!title || !dueDateRaw || !dueTimeRaw) {
@@ -47,6 +48,7 @@ export async function POST(req: NextRequest) {
         imageUrl,
         urgent,
         recurrence,
+        courseId: courseId || null,
       },
     });
   } catch (err) {

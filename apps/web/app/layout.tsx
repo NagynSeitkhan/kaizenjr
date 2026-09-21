@@ -10,6 +10,11 @@ export const metadata = {
   icons: {
     icon: [{ url: "/favicon.gif", type: "image/gif" }],
   },
+  manifest: "/manifest.json",
+};
+
+export const viewport = {
+  themeColor: "#0b0d12",
 };
 
 export default async function RootLayout({ children }: { children: ReactNode }) {
