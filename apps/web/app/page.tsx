@@ -37,7 +37,7 @@ export default async function DashboardPage({
   // overdue would be invisible exactly when you're looking for it.
   const deadlineWhere = query
     ? { deletedAt: null, title: { contains: query, mode: "insensitive" as const } }
-    : { dueAt: { gte: new Date() }, deletedAt: null };
+    : { dueAt: { gte: new Date() }, deletedAt: null, completedAt: null };
   const taskWhere = query
     ? { deletedAt: null, title: { contains: query, mode: "insensitive" as const } }
     : { status: { state: { not: "DONE" as const } }, deletedAt: null };
@@ -59,7 +59,7 @@ export default async function DashboardPage({
         take: 30,
       }),
       prisma.task.count({ where: { status: { state: "DONE" }, deletedAt: null } }),
-      prisma.deadline.count({ where: { dueAt: { gte: new Date(), lte: weekOut }, deletedAt: null } }),
+      prisma.deadline.count({ where: { dueAt: { gte: new Date(), lte: weekOut }, deletedAt: null, completedAt: null } }),
       prisma.note.count({ where: { deletedAt: null } }),
       // .catch() here (not a wrapping try/catch) so a failure on just this
       // query can't reject the whole Promise.all and take the real content
@@ -79,6 +79,9 @@ export default async function DashboardPage({
           </Link>
           <Link href="/trash" style={{ color: "#8b93a7", fontSize: 14 }}>
             Trash
+          </Link>
+          <Link href="/history" style={{ color: "#8b93a7", fontSize: 14 }}>
+            History
           </Link>
           <a href="/api/export" style={{ color: "#8b93a7", fontSize: 14 }}>
             Export
@@ -304,6 +307,11 @@ export default async function DashboardPage({
                       </span>
                     </div>
                     <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                      <form method="POST" action={`/api/deadlines/${d.id}/complete`}>
+                        <button type="submit" style={toggleButtonStyle(false)}>
+                          Mark done
+                        </button>
+                      </form>
                       <form method="POST" action={`/api/deadlines/${d.id}/toggle-notify`}>
                         <button type="submit" style={toggleButtonStyle(d.notifyEnabled)}>
                           {d.notifyEnabled ? "🔔 Notify: on" : "🔕 Notify: off"}

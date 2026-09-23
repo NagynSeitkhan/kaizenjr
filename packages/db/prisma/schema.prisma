@@ -80,6 +80,7 @@ model Deadline {
   urgent        Boolean           @default(false)
   nagAcknowledgedAt DateTime?
   recurrence    Recurrence        @default(NONE)
+  completedAt   DateTime?
   deletedAt     DateTime?
   createdAt     DateTime          @default(now())
   updatedAt     DateTime          @updatedAt

@@ -51,7 +51,7 @@ async function buildTodayAgenda(): Promise<string> {
 
   const [deadlines, tasks] = await Promise.all([
     prisma.deadline.findMany({
-      where: { dueAt: { lte: endOfToday }, deletedAt: null },
+      where: { dueAt: { lte: endOfToday }, deletedAt: null, completedAt: null },
       include: { course: true },
       orderBy: { dueAt: "asc" },
     }),
@@ -92,7 +92,7 @@ async function buildWeekAgenda(): Promise<string> {
 
   const [deadlines, tasks] = await Promise.all([
     prisma.deadline.findMany({
-      where: { dueAt: { gte: now, lte: weekOut }, deletedAt: null },
+      where: { dueAt: { gte: now, lte: weekOut }, deletedAt: null, completedAt: null },
       include: { course: true },
       orderBy: { dueAt: "asc" },
     }),

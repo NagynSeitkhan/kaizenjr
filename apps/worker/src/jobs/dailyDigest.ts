@@ -30,7 +30,7 @@ export async function runDailyDigest(): Promise<void> {
   const weekOut = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
   const [deadlines, tasks] = await Promise.all([
     prisma.deadline.findMany({
-      where: { dueAt: { gte: new Date(), lte: weekOut }, deletedAt: null },
+      where: { dueAt: { gte: new Date(), lte: weekOut }, deletedAt: null, completedAt: null },
       include: { course: true },
       orderBy: { dueAt: "asc" },
     }),

@@ -12,7 +12,14 @@ const NAG_INTERVAL_MINUTES = Number(process.env.NAG_INTERVAL_MINUTES ?? 15);
 
 async function nagDeadlines(now: Date): Promise<void> {
   const deadlines = await prisma.deadline.findMany({
-    where: { urgent: true, notifyEnabled: true, deletedAt: null, nagAcknowledgedAt: null, dueAt: { lte: now } },
+    where: {
+      urgent: true,
+      notifyEnabled: true,
+      deletedAt: null,
+      completedAt: null,
+      nagAcknowledgedAt: null,
+      dueAt: { lte: now },
+    },
     include: { course: true },
   });
 

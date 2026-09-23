@@ -17,7 +17,7 @@ async function remind(
   dueAtWhere: Prisma.DeadlineWhereInput["dueAt"]
 ): Promise<void> {
   const deadlines = await prisma.deadline.findMany({
-    where: { dueAt: dueAtWhere, notifyEnabled: true, deletedAt: null },
+    where: { dueAt: dueAtWhere, notifyEnabled: true, deletedAt: null, completedAt: null },
     include: { course: true },
   });
 

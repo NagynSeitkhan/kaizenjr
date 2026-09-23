@@ -41,7 +41,7 @@ export async function runWeeklyDigest(): Promise<void> {
     prisma.deadline.count({ where: { dueAt: { gte: weekAgo, lte: now } } }),
     prisma.task.count({ where: { status: { state: "DONE", updatedAt: { gte: weekAgo, lte: now } } } }),
     prisma.deadline.findMany({
-      where: { dueAt: { gte: now, lte: twoWeeksOut }, deletedAt: null },
+      where: { dueAt: { gte: now, lte: twoWeeksOut }, deletedAt: null, completedAt: null },
       include: { course: true },
       orderBy: { dueAt: "asc" },
     }),
