@@ -57,18 +57,32 @@ function extractHashtag(text: string): { tag: string; remaining: string } | null
   return { tag, remaining };
 }
 
+// "18.00" -> "18:00": Russian/Kazakh convention writes clock times with a
+// period, but chrono's English parser reads a bare "18" right after a date
+// as a 2-digit YEAR ('18 -> 2018) instead of an hour, silently dropping the
+// ".00" as unmatched leftover text - confirmed via direct chrono testing:
+// "October 6 18.00" parses as Oct 6 *2018* with "18" consumed and ".00"
+// left dangling in the title, while "October 6 18:00" parses correctly as
+// this year's Oct 6 at 18:00. Normalizing the separator first sidesteps
+// the ambiguity entirely. Narrowed to plausible hour:minute values (00-23,
+// 00-59) to limit false positives on unrelated decimals like "3.14".
+function normalizeDotTime(text: string): string {
+  return text.replace(/\b([01]?\d|2[0-3])\.([0-5]\d)\b/g, "$1:$2");
+}
+
 function extractDate(text: string): { date: Date; remaining: string } | null {
+  const normalized = normalizeDotTime(text);
   const ref = { instant: new Date(), timezone: ASTANA_UTC_OFFSET_MINUTES };
-  let source = text;
+  let source = normalized;
   let results: chrono.ParsedResult[];
 
-  if (containsKazakhWord(text)) {
+  if (containsKazakhWord(normalized)) {
     // Commit to the Russian path directly rather than trying English first:
     // chrono's English parser recognizes a bare "17:00" as a standalone
     // time even with no English date words around it, which would
     // otherwise "succeed" on a Kazakh message and silently ignore the
     // "ертен" (tomorrow) that appears elsewhere in the same message.
-    source = translateKazakh(text);
+    source = translateKazakh(normalized);
     results = chrono.ru.parse(source, ref);
   } else {
     // English first for everything else: chrono's Russian parser has the
@@ -76,9 +90,9 @@ function extractDate(text: string): { date: Date; remaining: string } | null {
     // sentence (missing "tomorrow" entirely) rather than returning no
     // match. The English parser correctly returns nothing for Russian
     // text, so trying it first here has no equivalent false-positive risk.
-    results = chrono.parse(text, ref);
+    results = chrono.parse(normalized, ref);
     if (results.length === 0) {
-      results = chrono.ru.parse(text, ref);
+      results = chrono.ru.parse(normalized, ref);
     }
   }
 
